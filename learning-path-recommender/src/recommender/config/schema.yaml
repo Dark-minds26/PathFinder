@@ -1,0 +1,30 @@
+users:
+  columns:
+    user_id: str
+    career_goal_id: str
+    experience_level: str
+    learning_style: str
+
+courses:
+  columns:
+    course_id: str
+    title: str
+    difficulty: str
+    duration_hours: int
+
+skills:
+  columns:
+    skill_id: str
+    skill_name: str
+    is_foundational: bool
+
+learning_events:
+  columns:
+    event_id: str
+    user_id: str
+    course_id: str
+    skill_id: str
+    event_type: str
+    completion_pct: float
+    score: float
+    occurred_at: str

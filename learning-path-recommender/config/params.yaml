@@ -1,0 +1,10 @@
+expected_score: 0.6
+score_threshold: 0.05
+top_k_features: 5
+max_path_length: 20
+min_confidence: 0.5
+
+model_params:
+  n_estimators: 200
+  learning_rate: 0.05
+  max_depth: 6

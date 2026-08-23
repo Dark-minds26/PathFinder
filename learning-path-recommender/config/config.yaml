@@ -1,0 +1,7 @@
+schema_file_path: "src/recommender/config/schema.yaml"
+
+data_source:
+  type: "postgres"
+  users_table: "dim_user"
+  courses_table: "dim_course"
+  events_table: "fact_learning_event"
