@@ -1,10 +1,13 @@
 expected_score: 0.6
-score_threshold: 0.05
+score_threshold: 0.0
 top_k_features: 5
 max_path_length: 20
 min_confidence: 0.5
+candidate_courses_per_skill: 5
+svd_components: 24
+num_synthetic_users: 300
 
 model_params:
   n_estimators: 200
   learning_rate: 0.05
-  max_depth: 6
+  max_depth: 4
