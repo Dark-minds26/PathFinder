@@ -1,0 +1,16 @@
+goal_id,skill_id,importance_weight
+goal_data_scientist,statistics,1.0
+goal_data_scientist,data_wrangling,1.0
+goal_data_scientist,data_visualization,1.0
+goal_data_scientist,machine_learning,1.0
+goal_ml_engineer,machine_learning,1.0
+goal_ml_engineer,docker_basics,1.0
+goal_ml_engineer,mlops_basics,1.0
+goal_ml_engineer,cloud_aws_basics,1.0
+goal_backend_eng,rest_apis,1.0
+goal_backend_eng,databases_basics,1.0
+goal_backend_eng,backend_frameworks,1.0
+goal_backend_eng,system_design,1.0
+goal_frontend_eng,react_basics,1.0
+goal_frontend_eng,state_management,1.0
+goal_frontend_eng,frontend_testing,1.0

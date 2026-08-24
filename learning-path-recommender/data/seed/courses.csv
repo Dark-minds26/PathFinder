@@ -1,0 +1,49 @@
+course_id,title,difficulty,duration_hours,format
+course_001,Python basics crash course,advanced,9,video
+course_002,Python basics deep dive,advanced,19,video
+course_003,Git basics crash course,beginner,10,interactive
+course_004,Git basics deep dive,beginner,36,video
+course_005,SQL basics crash course,advanced,29,video
+course_006,SQL basics deep dive,beginner,7,video
+course_007,HTML/CSS basics crash course,beginner,34,interactive
+course_008,HTML/CSS basics deep dive,beginner,37,video
+course_009,Docker basics crash course,advanced,36,text
+course_010,Docker basics deep dive,beginner,30,interactive
+course_011,Python advanced crash course,intermediate,2,video
+course_012,Python advanced deep dive,advanced,29,text
+course_013,Statistics crash course,intermediate,11,video
+course_014,Statistics deep dive,intermediate,8,video
+course_015,REST APIs crash course,intermediate,8,text
+course_016,REST APIs deep dive,intermediate,40,text
+course_017,Databases basics crash course,beginner,31,interactive
+course_018,Databases basics deep dive,beginner,26,video
+course_019,JavaScript basics crash course,advanced,20,interactive
+course_020,JavaScript basics deep dive,advanced,25,interactive
+course_021,Kubernetes basics crash course,beginner,6,video
+course_022,Kubernetes basics deep dive,advanced,16,text
+course_023,Cloud (AWS) basics crash course,beginner,16,video
+course_024,Cloud (AWS) basics deep dive,intermediate,19,text
+course_025,Data wrangling crash course,advanced,25,video
+course_026,Data wrangling deep dive,intermediate,24,video
+course_027,TypeScript basics crash course,advanced,19,interactive
+course_028,TypeScript basics deep dive,advanced,6,interactive
+course_029,React basics crash course,advanced,12,interactive
+course_030,React basics deep dive,advanced,17,video
+course_031,System design crash course,intermediate,26,text
+course_032,System design deep dive,advanced,37,video
+course_033,Backend frameworks crash course,advanced,22,video
+course_034,Backend frameworks deep dive,beginner,4,text
+course_035,Data visualization crash course,intermediate,19,video
+course_036,Data visualization deep dive,beginner,38,interactive
+course_037,Machine learning crash course,intermediate,15,interactive
+course_038,Machine learning deep dive,intermediate,27,interactive
+course_039,State management crash course,intermediate,11,text
+course_040,State management deep dive,beginner,17,interactive
+course_041,Frontend testing crash course,advanced,36,text
+course_042,Frontend testing deep dive,advanced,39,text
+course_043,Web performance crash course,advanced,27,text
+course_044,Web performance deep dive,beginner,10,interactive
+course_045,Deep learning crash course,intermediate,7,video
+course_046,Deep learning deep dive,beginner,11,interactive
+course_047,MLOps basics crash course,beginner,29,interactive
+course_048,MLOps basics deep dive,beginner,26,text
