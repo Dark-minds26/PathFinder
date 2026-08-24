@@ -4,6 +4,9 @@ users:
     career_goal_id: str
     experience_level: str
     learning_style: str
+  primary_key: user_id
+  foreign_keys:
+    career_goal_id: career_goals.goal_id
 
 courses:
   columns:
@@ -11,12 +14,48 @@ courses:
     title: str
     difficulty: str
     duration_hours: int
+    format: str
+  primary_key: course_id
 
 skills:
   columns:
     skill_id: str
     skill_name: str
-    is_foundational: bool
+    category: str
+    is_foundational: int
+  primary_key: skill_id
+
+skill_prerequisites:
+  columns:
+    skill_id: str
+    prerequisite_skill_id: str
+  foreign_keys:
+    skill_id: skills.skill_id
+    prerequisite_skill_id: skills.skill_id
+
+career_goals:
+  columns:
+    goal_id: str
+    title: str
+  primary_key: goal_id
+
+bridge_career_goal_skill:
+  columns:
+    goal_id: str
+    skill_id: str
+    importance_weight: float
+  foreign_keys:
+    goal_id: career_goals.goal_id
+    skill_id: skills.skill_id
+
+bridge_course_skill:
+  columns:
+    course_id: str
+    skill_id: str
+    skill_weight: float
+  foreign_keys:
+    course_id: courses.course_id
+    skill_id: skills.skill_id
 
 learning_events:
   columns:
@@ -28,3 +67,8 @@ learning_events:
     completion_pct: float
     score: float
     occurred_at: str
+  primary_key: event_id
+  foreign_keys:
+    user_id: users.user_id
+    course_id: courses.course_id
+    skill_id: skills.skill_id

@@ -26,21 +26,27 @@ class TrainingPipeline:
         validation_artifact = DataValidation(
             ingestion_artifact, self.config_manager.get_data_validation_config()
         ).initiate_data_validation()
-
-        transformation_artifact = DataTransformation(
-            validation_artifact, self.config_manager.get_data_transformation_config()
-        ).initiate_data_transformation()
+        if not validation_artifact.validation_status:
+            logging.warning(
+                "Data validation failed - see %s. Continuing on synthetic seed "
+                "data, but this should hard-stop the pipeline on real sources.",
+                validation_artifact.report_file_path,
+            )
 
         SkillGraphBuilder(
             self.config_manager.get_skill_graph_config()
         ).initiate_graph_build()
+
+        transformation_artifact = DataTransformation(
+            ingestion_artifact, self.config_manager.get_data_transformation_config()
+        ).initiate_data_transformation()
 
         trainer_artifact = ModelTrainer(
             transformation_artifact, self.config_manager.get_model_trainer_config()
         ).initiate_model_training()
 
         evaluator_artifact = ModelEvaluator(
-            trainer_artifact, self.config_manager.get_model_evaluator_config()
+            trainer_artifact, transformation_artifact, self.config_manager.get_model_evaluator_config()
         ).initiate_model_evaluation()
 
         Explainer(

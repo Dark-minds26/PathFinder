@@ -1,12 +1,21 @@
 import os
 
 ARTIFACT_DIR: str = "artifacts"
-DATA_DIR: str = os.path.join("data")
-RAW_USERS_FILE: str = "users.csv"
-RAW_COURSES_FILE: str = "courses.csv"
-RAW_EVENTS_FILE: str = "learning_events.csv"
-SKILL_EDGES_FILE: str = "skill_prerequisites.csv"
+SEED_DATA_DIR: str = os.path.join("data", "seed")
 
 CONFIG_FILE_PATH: str = os.path.join("config", "config.yaml")
 PARAMS_FILE_PATH: str = os.path.join("config", "params.yaml")
 SCHEMA_FILE_PATH: str = os.path.join("src", "recommender", "config", "schema.yaml")
+
+RANDOM_SEED: int = 42
+
+# Feature columns the ranking model trains on (see data_transformation.py)
+FEATURE_COLUMNS: list = [
+    "skill_gap_match",
+    "goal_alignment",
+    "difficulty_fit",
+    "popularity",
+    "predicted_time_to_complete",
+    "content_similarity",
+]
+RELEVANCE_COLUMN: str = "relevance"

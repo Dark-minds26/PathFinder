@@ -4,6 +4,8 @@ from src.recommender.constants import (
     ARTIFACT_DIR,
     CONFIG_FILE_PATH,
     PARAMS_FILE_PATH,
+    SCHEMA_FILE_PATH,
+    SEED_DATA_DIR,
 )
 from src.recommender.entity.config_entity import (
     DataIngestionConfig,
@@ -31,15 +33,13 @@ class ConfigurationManager:
 
     def get_data_ingestion_config(self) -> DataIngestionConfig:
         return DataIngestionConfig(
-            raw_data_dir=os.path.join(ARTIFACT_DIR, "raw_data"),
-            ingested_users_path=os.path.join(ARTIFACT_DIR, "raw_data", "users.csv"),
-            ingested_courses_path=os.path.join(ARTIFACT_DIR, "raw_data", "courses.csv"),
-            ingested_events_path=os.path.join(ARTIFACT_DIR, "raw_data", "learning_events.csv"),
+            seed_data_dir=SEED_DATA_DIR,
+            ingested_data_dir=os.path.join(ARTIFACT_DIR, "raw_data"),
         )
 
     def get_data_validation_config(self) -> DataValidationConfig:
         return DataValidationConfig(
-            schema_file_path=self.config.get("schema_file_path", ""),
+            schema_file_path=self.config.get("schema_file_path", SCHEMA_FILE_PATH),
             validation_report_path=os.path.join(ARTIFACT_DIR, "validation", "report.yaml"),
         )
 
@@ -47,12 +47,15 @@ class ConfigurationManager:
         return DataTransformationConfig(
             transformed_data_dir=os.path.join(ARTIFACT_DIR, "transformed"),
             preprocessor_object_path=os.path.join(ARTIFACT_DIR, "transformed", "preprocessor.pkl"),
+            svd_components=self.params.get("svd_components", 24),
+            graph_object_path=os.path.join(ARTIFACT_DIR, "graph", "skill_dag.pkl"),
         )
 
     def get_skill_graph_config(self) -> SkillGraphConfig:
         return SkillGraphConfig(
             prerequisite_edges_path=os.path.join(ARTIFACT_DIR, "raw_data", "skill_prerequisites.csv"),
-            graph_cache_path=os.path.join(ARTIFACT_DIR, "graph", "skill_dag.gpickle"),
+            skills_path=os.path.join(ARTIFACT_DIR, "raw_data", "skills.csv"),
+            graph_cache_path=os.path.join(ARTIFACT_DIR, "graph", "skill_dag.pkl"),
         )
 
     def get_model_trainer_config(self) -> ModelTrainerConfig:
@@ -78,4 +81,9 @@ class ConfigurationManager:
         return PathGeneratorConfig(
             max_path_length=self.params.get("max_path_length", 20),
             min_confidence=self.params.get("min_confidence", 0.5),
+            candidate_courses_per_skill=self.params.get("candidate_courses_per_skill", 5),
+            graph_path=os.path.join(ARTIFACT_DIR, "graph", "skill_dag.pkl"),
+            model_path=os.path.join(ARTIFACT_DIR, "model", "model.pkl"),
+            preprocessor_path=os.path.join(ARTIFACT_DIR, "transformed", "preprocessor.pkl"),
+            bridge_course_skill_path=os.path.join(ARTIFACT_DIR, "raw_data", "bridge_course_skill.csv"),
         )

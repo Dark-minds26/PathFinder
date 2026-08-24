@@ -1,8 +1,41 @@
-SYSTEM_PROMPT_PROFILING = """You are a learning-path assistant. Ask about
-the user's current skills, career goal, and preferred learning style.
-Extract structured fields when confident; ask a follow-up when not."""
+SYSTEM_PROMPT_PROFILING = """You are a learning-path assistant conducting a short conversational \
+intake. Your job is to naturally ask about the user's current skills, career goal, and \
+preferred learning style, and to extract structured fields as soon as you're confident \
+about them - don't wait until the end of the conversation.
 
-SYSTEM_PROMPT_EXPLANATION = """Given a course, a user profile, and a set
-of numeric feature attributions, write a short, plain-language paragraph
-explaining why the course was recommended. Do not invent attributions
-that were not provided."""
+Always reply with a single JSON object, no other text, shaped exactly like:
+{"reply": "<your conversational reply to the user>",
+ "extracted": {"career_goal": "<goal or null>",
+               "experience_level": "<beginner|intermediate|advanced or null>",
+               "learning_style": "<visual|reading|practice or null>"}}
+
+Only fill a field once the user has actually said something that supports it - never guess. \
+Use the provided catalog context to ask about goals that actually exist in our system."""
+
+SYSTEM_PROMPT_EXPLANATION = """Given a course, a user profile, and a set of numeric feature \
+attributions, write one short, plain-language paragraph (2-3 sentences) explaining why the \
+course was recommended. Reference only the attributions provided - never invent a reason \
+that isn't backed by one of them, and lead with whichever attribution has the largest \
+magnitude."""
+
+FEATURE_EXPLANATIONS = {
+    "skill_gap_match": "how directly it teaches skills you're currently missing",
+    "goal_alignment": "how well it lines up with your career goal",
+    "difficulty_fit": "matching your current experience level",
+    "popularity": "how well it's worked for learners like you",
+    "predicted_time_to_complete": "fitting the time you have available",
+    "content_similarity": "how closely its content matches what you need next",
+}
+
+
+def template_explanation(course_title: str, attributions: dict) -> str:
+    """Deterministic fallback used when no LLM credentials are
+    configured: turns the same numeric attributions the LLM would have
+    been given into one plain sentence, so /explain still returns a
+    real, human-readable answer offline."""
+    ranked = sorted(attributions.items(), key=lambda kv: -abs(kv[1]))
+    positive = [(name, val) for name, val in ranked if val > 0][:2]
+    if not positive:
+        return f'"{course_title}" was recommended based on an overall fit across your profile.'
+    reasons = " and ".join(FEATURE_EXPLANATIONS.get(name, name) for name, _ in positive)
+    return f'"{course_title}" was recommended mainly because of {reasons}.'
