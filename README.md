@@ -13,25 +13,39 @@ SHAP-backed explanations and a RAG-driven conversational profiling agent.
   installed; without them the pipeline automatically falls back to a
   `scikit-learn` ranker and a baseline-attribution explainer with the
   same interface, so it always runs, network or no network.
-- **Phase 3** - API + LLM integration: pending. Routers still return
-  `501` and `src/recommender/llm/*` still raises `NotImplementedError`.
+- **Phase 3** - API + LLM integration: done. All four routers are
+  wired to the real pipeline. `/profile/chat` runs RAG (over the same
+  TF-IDF/SVD space Phase 2 already fit - no new vector store) into an
+  LLM client that extracts structured fields; `Groq`/`OpenAI` are used
+  when an API key + package are present, and it falls back to a
+  deterministic local matcher otherwise - same fallback philosophy as
+  Phase 2. A brand-new chat user (not in the synthetic training
+  snapshot) gets a real path from `/path/generate` once their profile
+  has a goal.
 
 ## Run it
 
     pip install -r requirements.txt
     cp .env.example .env
+    # optional: set GROQ_API_KEY or OPENAI_API_KEY in .env for real LLM replies
 
-    python main.py              # trains the pipeline, prints nothing (see logs/)
+    python main.py              # trains the pipeline (see logs/ and artifacts/)
     python -m unittest discover tests  # or: pytest
 
     uvicorn api.main:app --reload
+    # POST /profile/chat {"user_id": "u1", "message": "I want to be a data scientist"}
+    # POST /path/generate {"user_id": "u1"}
+    # GET  /explain/{course_id}/u1
 
 ## Layout
 
 - `src/recommender/components` - single-responsibility pipeline steps
 - `src/recommender/pipeline` - orchestrates components end to end
 - `src/recommender/entity` - typed config/artifact contracts
-- `src/recommender/llm` - RAG + conversational profiling
+- `src/recommender/llm` - `llm_client.py` (Groq/OpenAI/local-fallback,
+  one interface), `rag_engine.py` (retrieval over Phase 2's fitted
+  embeddings), `conversation_manager.py` (orchestrates a turn),
+  `profile_store.py` (JSON-file-backed live user profiles)
 - `src/recommender/utils/feature_engineering.py` - the one place
   (user, course) features are computed - training and serving both
   call it, so they can't drift apart
