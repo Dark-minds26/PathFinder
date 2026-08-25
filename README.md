@@ -23,6 +23,9 @@ SHAP-backed explanations and a RAG-driven conversational profiling agent.
   snapshot) gets a real path from `/path/generate` once their profile
   has a goal.
 
+## Note:
+  This project is tested with Python 3.11. Python 3.13 may cause dependency installation issues with packages such as shap and psycopg2-binary. Use Python             3.11 and create the virtual environment with it.
+  
 ## Run it
 
     pip install -r requirements.txt
