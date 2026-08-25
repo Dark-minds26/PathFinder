@@ -88,16 +88,29 @@ class FeatureContext:
             skill_name_by_id=preprocessor["skill_name_by_id"],
         )
 
-    def missing_skills_for_user(self, user_id: str, exclude_mastered: set | None = None) -> list:
+    def missing_skills_for_user(
+        self,
+        user_id: str,
+        exclude_mastered: set | None = None,
+        goal_id: str | None = None,
+        possessed_skills: set | None = None,
+    ) -> list:
         """`exclude_mastered` treats those skill_ids as NOT possessed for
         this call, without touching the underlying history - how
         adaptive rerouting reflects a failed assessment without
-        rewriting the user's actual mastery record."""
-        possessed = self.possessed_by_user.get(user_id, set())
+        rewriting the user's actual mastery record.
+
+        `goal_id` / `possessed_skills` override the training-snapshot
+        lookups entirely - how a user profiled live through /profile/chat
+        (not part of the frozen Phase 2 training data) still gets a real
+        path generated from their actual ProfileStore record."""
+        possessed = set(possessed_skills) if possessed_skills is not None else set(
+            self.possessed_by_user.get(user_id, set())
+        )
         if exclude_mastered:
             possessed = possessed - set(exclude_mastered)
-        goal_id = self.user_goal.get(user_id)
-        required = self.goal_required_ids.get(goal_id, set())
+        resolved_goal = goal_id or self.user_goal.get(user_id)
+        required = self.goal_required_ids.get(resolved_goal, set())
         return get_missing_skills_ordered(self.graph, possessed, required)
 
     def _skill_query_embedding(self, skill_ids_subset) -> np.ndarray:
@@ -105,10 +118,17 @@ class FeatureContext:
         text = " ".join(names) if names else ""
         return self.svd.transform(self.tfidf.transform([text]))[0]
 
-    def build_features(self, user_id: str, course_id: str, missing_set: set) -> dict:
+    def build_features(
+        self,
+        user_id: str,
+        course_id: str,
+        missing_set: set,
+        goal_id: str | None = None,
+        experience_level: str | None = None,
+    ) -> dict:
         c_vec = self.course_vectors.get(course_id, np.zeros(self.n_skills))
-        goal_id = self.user_goal.get(user_id)
-        g_vec = self.goal_vectors.get(goal_id, np.zeros(self.n_skills))
+        resolved_goal = goal_id or self.user_goal.get(user_id)
+        g_vec = self.goal_vectors.get(resolved_goal, np.zeros(self.n_skills))
         c_skills = {s for s, _w in self.course_skills.get(course_id, [])}
 
         skill_gap_match = len(c_skills & missing_set) / len(c_skills) if c_skills else 0.0
@@ -116,7 +136,8 @@ class FeatureContext:
         goal_alignment = float(np.dot(c_vec, g_vec) / denom)
 
         d_course = DIFFICULTY_RANK.get(self.difficulty_by_course.get(course_id), 1)
-        d_user = DIFFICULTY_RANK.get(self.user_experience.get(user_id), 1)
+        resolved_experience = experience_level or self.user_experience.get(user_id)
+        d_user = DIFFICULTY_RANK.get(resolved_experience, 1)
         difficulty_fit = 1.0 - abs(d_course - d_user) / 2.0
 
         popularity = float(self.popularity_by_course.get(course_id, 0.5))
