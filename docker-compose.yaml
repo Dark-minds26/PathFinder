@@ -1,5 +1,13 @@
 version: "3.9"
 
+# The api service is fully self-contained today: the trained model is
+# baked into the image at build time (see Dockerfile) and live user
+# profiles are a JSON file, not a database. postgres/redis below are
+# the target production architecture documented in Phase 1 (a real
+# star-schema store, shared session cache across multiple workers) -
+# nothing in the code connects to either one yet, so they're commented
+# out by default rather than adding two services the demo doesn't need.
+
 services:
   api:
     build: .
@@ -7,25 +15,25 @@ services:
       - "8000:8000"
     env_file:
       - .env
-    depends_on:
-      - postgres
-      - redis
+    # depends_on:
+    #   - postgres
+    #   - redis
 
-  postgres:
-    image: ankane/pgvector:latest
-    environment:
-      POSTGRES_DB: learning_recommender
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+  # postgres:
+  #   image: ankane/pgvector:latest
+  #   environment:
+  #     POSTGRES_DB: learning_recommender
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - "6379:6379"
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-volumes:
-  pgdata:
+# volumes:
+#   pgdata:

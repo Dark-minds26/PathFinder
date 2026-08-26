@@ -24,6 +24,18 @@ class PathGenerator:
         self._model = None
         self._course_skill_map: dict | None = None
 
+    @property
+    def ctx(self) -> FeatureContext:
+        """Exposed so /explain can reuse the same loaded graph, model,
+        and preprocessor instead of loading its own copy."""
+        self._ensure_loaded()
+        return self._ctx
+
+    @property
+    def model(self):
+        self._ensure_loaded()
+        return self._model
+
     def _ensure_loaded(self) -> None:
         if self._ctx is not None:
             return
@@ -39,14 +51,25 @@ class PathGenerator:
         self._course_skill_map = course_skill_map
 
     def generate_path(
-        self, user_id: str, exclude_mastered_skills: set | None = None
+        self,
+        user_id: str,
+        exclude_mastered_skills: set | None = None,
+        goal_id: str | None = None,
+        possessed_skills: set | None = None,
+        experience_level: str | None = None,
     ) -> PathGeneratorArtifact:
+        """`goal_id` / `possessed_skills` / `experience_level` override
+        the training-snapshot lookups for a user - how a live-profiled
+        user (built up through /profile/chat, not part of the frozen
+        Phase 2 training data) still gets a real roadmap."""
         try:
             self._ensure_loaded()
             logging.info(f"Generating path for user {user_id}")
             ctx = self._ctx
 
-            ordered_skills = ctx.missing_skills_for_user(user_id, exclude_mastered_skills)
+            ordered_skills = ctx.missing_skills_for_user(
+                user_id, exclude_mastered_skills, goal_id=goal_id, possessed_skills=possessed_skills
+            )
             missing_set = set(ordered_skills)
             used_courses: set = set()
             steps = []
@@ -62,7 +85,12 @@ class PathGenerator:
                 if not candidates:
                     continue
 
-                feats = [ctx.build_features(user_id, cid, missing_set) for cid in candidates]
+                feats = [
+                    ctx.build_features(
+                        user_id, cid, missing_set, goal_id=goal_id, experience_level=experience_level
+                    )
+                    for cid in candidates
+                ]
                 X = np.array([[f[c] for c in FEATURE_COLUMNS] for f in feats])
                 scores = self._model.predict(X)
                 best_i = int(np.argmax(scores))
