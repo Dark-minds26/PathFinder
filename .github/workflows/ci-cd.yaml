@@ -16,6 +16,9 @@ jobs:
           python-version: "3.11"
       - run: pip install -r requirements.txt
       - run: ruff check .
+      - run: python main.py  # produces artifacts/ - without this, every
+                              # artifact-gated integration test silently
+                              # skips instead of actually running
       - run: pytest
 
   build:
