@@ -153,34 +153,41 @@ def _validate_profile_result(result: dict, candidate_goals: list[dict], candidat
     result = _coerce_profile_result(result, candidate_goals, candidate_skills)
     valid_goals = {g["goal_id"] for g in candidate_goals}
     valid_skills = {s["skill_id"] for s in candidate_skills}
+    
     if result["goal_id"] is not None and result["goal_id"] not in valid_goals:
-        raise RecommenderException(f"LLM returned unknown goal_id: {result['goal_id']}", sys)
+        # Instead of crashing or rejecting, we embrace it as a custom dynamic goal!
+        if not str(result["goal_id"]).startswith("dynamic:"):
+            result["goal_id"] = f"dynamic:{result['goal_id']}"
+        
     unknown = (set(result["skill_ids"]) | set(result["unmastered_skill_ids"])) - valid_skills
     if unknown:
-        raise RecommenderException(f"LLM returned unknown skill ids: {sorted(unknown)}", sys)
+        raise ValueError(f"LLM returned unknown skill ids: {sorted(unknown)}")
+        
     if result["experience_level"] is not None and result["experience_level"] not in {"beginner", "intermediate", "advanced"}:
-        raise RecommenderException("LLM returned invalid experience_level", sys)
+        raise ValueError("LLM returned invalid experience_level")
+        
     if result["learning_style"] is not None and result["learning_style"] not in {"visual", "reading", "practice"}:
-        raise RecommenderException("LLM returned invalid learning_style", sys)
+        raise ValueError("LLM returned invalid learning_style")
+        
     if result["weekly_hours"] is not None:
         try:
             result["weekly_hours"] = float(result["weekly_hours"])
         except (TypeError, ValueError) as e:
-            raise RecommenderException("LLM returned invalid weekly_hours", sys) from e
+            raise ValueError("LLM returned invalid weekly_hours") from e
         if not 0 < result["weekly_hours"] <= 168:
-            raise RecommenderException("LLM returned weekly_hours outside 0-168", sys)
-    if not isinstance(result["interests"], list) or not all(isinstance(x, str) for x in result["interests"]):
-        raise RecommenderException("LLM response has invalid interests", sys)
-    allowed_interests = {"generative_ai", "llms", "computer_vision", "nlp", "mlops"}
-    unknown_interests = set(result["interests"]) - allowed_interests
-    if unknown_interests:
-        raise RecommenderException(f"LLM returned unknown interests: {sorted(unknown_interests)}", sys)
-    allowed_prefs = {"more_projects", "more_ai", "less_cloud", "slower_pace", "faster_pace"}
-    if not isinstance(result["roadmap_preferences"], dict) or not set(result["roadmap_preferences"]).issubset(allowed_prefs):
-        raise RecommenderException("LLM response has invalid roadmap_preferences", sys)
+            raise ValueError("LLM returned weekly_hours outside 0-168")
+            
+    if not isinstance(result["interests"], list):
+        result["interests"] = []
+        
+    if not isinstance(result["roadmap_preferences"], dict):
+        result["roadmap_preferences"] = {}
+        
     result["roadmap_preferences"] = {k: bool(v) for k, v in result["roadmap_preferences"].items() if bool(v)}
+    
     unmastered = set(result["unmastered_skill_ids"])
     result["skill_ids"] = [sid for sid in result["skill_ids"] if sid not in unmastered]
+    
     return result
 
 
@@ -234,6 +241,81 @@ class GroqClient(LLMClient):
         except Exception as e:
             raise RecommenderException(e, sys) from e
 
+    def generate_dynamic_path(self, user_profile: dict, ordered_skills: list[str], available_catalog: dict):
+        import json
+        from api.schemas.path_schema import PathResponse, PathStep
+        
+        system_prompt = """You are an expert career and learning router.
+        For each skill in MISSING_SKILLS, pick exactly ONE best course_id from AVAILABLE_CATALOG.
+        Return ONLY a JSON object with a 'path' array. 
+        Each item in 'path' must have: 'skill_id', 'course_id', and 'why' (a highly personalized 1-sentence reason based on the PROFILE)."""
+        
+        user_content = f"PROFILE: {json.dumps(user_profile)}\nMISSING_SKILLS: {json.dumps(ordered_skills)}\nAVAILABLE_CATALOG: {json.dumps(available_catalog)}"
+        
+        # Execute the LLM call using JSON mode
+        resp = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content}
+            ],
+            temperature=0.2,
+            response_format={"type": "json_object"}
+        )
+        
+        data = json.loads(resp.choices[0].message.content)
+        steps = []
+        
+        # Grounding: Safely map the LLM's choices back to your actual database items
+        for i, item in enumerate(data.get("path", [])):
+            skill_id = item.get("skill_id")
+            course_id = item.get("course_id")
+            
+            cat_list = available_catalog.get(skill_id, [])
+            cat_item = next((c for c in cat_list if c["course_id"] == course_id), None)
+            
+            # If the LLM hallucinated, silently fall back to the first valid RAG course
+            if not cat_item: 
+                if cat_list: cat_item = cat_list[0] 
+                else: continue
+                
+            steps.append(PathStep(
+                skill_id=skill_id,
+                course_id=cat_item["course_id"],
+                course_title=cat_item["title"],
+                sequence_order=i+1,
+                predicted_score=0.95,
+                duration_hours=5.0, 
+                format="interactive" if "project" in cat_item["title"].lower() else "video",
+                status="current" if i==0 else "locked",
+                why=item.get("why", "Recommended based on your profile."),
+                competency=skill_id
+            ))
+            
+        return PathResponse(user_id=user_profile.get("user_id", "unknown"), path=steps, source="llm_router", state="ok")
+
+    def generate_assessment(self, skill_id: str) -> dict:
+        import json
+        system_prompt = f"""You are an expert technical interviewer. Generate a 3-question multiple-choice diagnostic test for the skill: {skill_id}.
+        Return ONLY a JSON object matching this exact schema:
+        {{
+            "questions": [
+                {{
+                    "id": "q1",
+                    "question": "The actual question text",
+                    "options": ["Option A", "Option B", "Option C", "Option D"],
+                    "correct_index": 1 
+                }}
+            ]
+        }}"""
+        
+        resp = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "system", "content": system_prompt}],
+            temperature=0.4,
+            response_format={"type": "json_object"}
+        )
+        return json.loads(resp.choices[0].message.content)
 
 class OpenAIClient(LLMClient):
     """Swap-in alternative to GroqClient - same interface, chosen via
@@ -284,6 +366,56 @@ class OpenAIClient(LLMClient):
             return resp.choices[0].message.content.strip()
         except Exception as e:
             raise RecommenderException(e, sys) from e
+
+    def generate_dynamic_path(self, user_profile: dict, ordered_skills: list[str], available_catalog: dict):
+        import json
+        from api.schemas.path_schema import PathResponse, PathStep
+        
+        system_prompt = """You are an expert career and learning router.
+        For each skill in MISSING_SKILLS, pick exactly ONE best course_id from AVAILABLE_CATALOG.
+        Return ONLY a JSON object with a 'path' array. 
+        Each item in 'path' must have: 'skill_id', 'course_id', and 'why' (a highly personalized 1-sentence reason based on the PROFILE)."""
+        
+        user_content = f"PROFILE: {json.dumps(user_profile)}\nMISSING_SKILLS: {json.dumps(ordered_skills)}\nAVAILABLE_CATALOG: {json.dumps(available_catalog)}"
+        
+        resp = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content}
+            ],
+            temperature=0.2,
+            response_format={"type": "json_object"}
+        )
+        
+        data = json.loads(resp.choices[0].message.content)
+        steps = []
+        
+        for i, item in enumerate(data.get("path", [])):
+            skill_id = item.get("skill_id")
+            course_id = item.get("course_id")
+            
+            cat_list = available_catalog.get(skill_id, [])
+            cat_item = next((c for c in cat_list if c["course_id"] == course_id), None)
+            
+            if not cat_item: 
+                if cat_list: cat_item = cat_list[0] 
+                else: continue
+                
+            steps.append(PathStep(
+                skill_id=skill_id,
+                course_id=cat_item["course_id"],
+                course_title=cat_item["title"],
+                sequence_order=i+1,
+                predicted_score=0.95,
+                duration_hours=5.0, 
+                format="interactive" if "project" in cat_item["title"].lower() else "video",
+                status="current" if i==0 else "locked",
+                why=item.get("why", "Recommended based on your profile."),
+                competency=skill_id
+            ))
+            
+        return PathResponse(user_id=user_profile.get("user_id", "unknown"), path=steps, source="llm_router", state="ok")
 
 
 _SKILL_NAME_STOPWORDS = {"basics", "fundamentals", "advanced", "and", "with"}
@@ -388,6 +520,31 @@ class LocalStubLLMClient(LLMClient):
     def explain(self, course_title: str, goal_title: str, attributions: dict) -> str:
         from src.recommender.llm.prompt_templates import template_explanation
         return template_explanation(course_title, attributions)
+
+    def generate_dynamic_path(self, user_profile: dict, ordered_skills: list[str], available_catalog: dict):
+        from api.schemas.path_schema import PathResponse, PathStep
+        steps = []
+        
+        for i, skill_id in enumerate(ordered_skills):
+            cat_list = available_catalog.get(skill_id, [])
+            if not cat_list: continue
+            
+            # The local stub bypasses the LLM and safely grabs the top RAG result
+            cat_item = cat_list[0] 
+            steps.append(PathStep(
+                skill_id=skill_id,
+                course_id=cat_item["course_id"],
+                course_title=cat_item["title"],
+                sequence_order=i+1,
+                predicted_score=0.85,
+                duration_hours=5.0,
+                format="text",
+                status="current" if i==0 else "locked",
+                why=f"Stub routing: {skill_id} is your next logical step.",
+                competency=skill_id
+            ))
+            
+        return PathResponse(user_id=user_profile.get("user_id", "unknown"), path=steps, source="local_stub", state="ok")
 
 
 def get_llm_client() -> LLMClient:

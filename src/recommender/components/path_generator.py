@@ -10,6 +10,7 @@ from src.recommender.exception import RecommenderException
 from src.recommender.logger import logging
 from src.recommender.utils.main_utils import load_object
 from src.recommender.utils.feature_engineering import FeatureContext
+from src.recommender.llm.llm_client import get_llm_client
 
 
 class PathGenerator:
@@ -164,3 +165,72 @@ class PathGenerator:
             return PathGeneratorArtifact(user_id=user_id, steps=steps, state="ok")
         except Exception as e:
             raise RecommenderException(e, sys) from e
+
+    def generate_dynamic_path_stream(self, user_id: str, profile: dict, **kwargs):
+        """
+        Replaces static ML scoring with dynamic LLM routing.
+        Yields PathStep objects for SSE streaming.
+        """
+        self._ensure_loaded()
+        
+        goal_id = kwargs.get("goal_id") or profile.get("goal_id")
+        mastered_set = set(profile.get("skill_ids", []))
+        
+        # 1. Try to get skills from the static graph first
+        try:
+            ordered_skills = self.ctx.missing_skills_for_user(
+                user_id, 
+                mastered_set,
+                goal_id=goal_id,
+                possessed_skills=mastered_set
+            )
+        except Exception:
+            ordered_skills = []
+
+        # 2. THE UNIVERSAL RAG FALLBACK
+        # If the graph doesn't know the goal (e.g., "dynamic:ias"), dynamically find the best matching skills!
+        if not ordered_skills and goal_id:
+            # Clean the dynamic tag to create a search query (e.g., "ias")
+            search_query = str(goal_id).replace("dynamic:", "").replace("_", " ")
+            
+            # Use your existing RAG embedding space to find the closest skills in your database
+            from api.dependencies import get_rag_engine
+            rag = get_rag_engine()
+            
+            # Fetch the top 10 most relevant skills to this novel goal
+            rag_skills = rag.retrieve_skills(search_query, top_k=10)
+            ordered_skills = [s["skill_id"] for s in rag_skills]
+
+        # 3. Aggressively filter out ANY skill that is already mastered
+        mastery = profile.get("mastery", {})
+        hard_mastered = {s for s, score in mastery.items() if float(score) >= 0.8}
+        all_mastered = hard_mastered | mastered_set
+        ordered_skills = [s for s in ordered_skills if s not in all_mastered]
+        
+        # 4. Check if the user explicitly asked to skip a skill (like "Docker")
+        if profile.get("roadmap_preferences", {}).get("skip_docker"): 
+            ordered_skills = [s for s in ordered_skills if "docker" not in s.lower()]
+
+        # 2. Fetch Valid Courses via RAG
+        # (You will need to add a retrieve_courses method to RAGEngine)
+        available_catalog = {}
+        for skill in ordered_skills[:self.config.max_path_length]:
+            # Fetch top 3 actual courses for this exact skill
+            candidates = self._course_skill_map.get(skill, [])[:3] 
+            available_catalog[skill] = [
+                {"course_id": c, "title": self.ctx.title_by_course.get(c)} 
+                for c in candidates
+            ]
+
+        # 3. Call the LLM to generate the final path
+        # (Using the new generate_dynamic_path method we added to llm_client.py)
+        llm = get_llm_client()
+        path_response = llm.generate_dynamic_path(
+            user_profile=profile,
+            ordered_skills=ordered_skills[:self.config.max_path_length],
+            available_catalog=available_catalog
+        )
+
+        # 4. Yield the steps for real-time frontend streaming
+        for step in path_response.path:
+            yield step
