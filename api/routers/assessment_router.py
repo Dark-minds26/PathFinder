@@ -1,56 +1,86 @@
 from fastapi import APIRouter, HTTPException
-from api.dependencies import get_path_generator,get_profile_store,get_reroute_pipeline,resolve_serving_overrides
+from api.dependencies import get_profile_store
+from src.recommender.llm.llm_client import get_llm_client
 from api.schemas.assessment_schema import AssessmentRequest
-from api.schemas.path_schema import PathResponse,PathStep
-from src.recommender.assessment_engine import questions_for,score_answers
-router=APIRouter(); REVIEW_THRESHOLD=60.0; VALIDATED_THRESHOLD=80.0
+from api.schemas.path_schema import PathResponse
+
+router = APIRouter()
+
+# Temporary in-memory cache to store correct answers for dynamic grading
+_temp_assessment_cache = {}
 
 @router.get("/{skill_id}")
-def get_assessment(skill_id:str): return {"skill_id":skill_id,"questions":questions_for(skill_id)}
+def get_assessment(skill_id: str):
+    try:
+        # 1. Dynamically generate fresh questions using the LLM!
+        llm = get_llm_client()
+        dynamic_test = llm.generate_assessment(skill_id)
+        
+        # 2. Save correct answers to grade later
+        cache_key = f"test_{skill_id}"
+        _temp_assessment_cache[cache_key] = {
+            q["id"]: q.get("correct_index", 0) for q in dynamic_test.get("questions", [])
+        }
+        
+        # 3. Hide correct answers from the frontend UI
+        safe_questions = [
+            {"id": q["id"], "question": q["question"], "options": q["options"]} 
+            for q in dynamic_test.get("questions", [])
+        ]
+        
+        return {"skill_id": skill_id, "questions": safe_questions}
+    except Exception as exc:
+        print(f"LLM Assessment Error: {exc}")
+        raise HTTPException(status_code=500, detail="Could not dynamically generate assessment.") from exc
 
-@router.post("/submit",response_model=PathResponse)
-def submit_assessment(request:AssessmentRequest)->PathResponse:
-    overrides=resolve_serving_overrides(request.user_id)
-    if not overrides.get("goal_id"): raise HTTPException(status_code=400,detail="Tell me what role you're targeting before assessing a skill.")
-    score=request.score
-    if score is None and request.answers is not None: score=score_answers(request.skill_id,request.answers)
-    if score is None: raise HTTPException(status_code=422,detail="Provide either score or answers.")
-    store=get_profile_store()
-    before=store.get(request.user_id)
-    previous_state=((before.get("mastery_state",{}).get(request.skill_id) or {}).get("status"))
-    score_pct=float(score)
-
-    if score_pct >= VALIDATED_THRESHOLD:
-        status="validated"
-        mastery_value=1.0
-    elif score_pct >= REVIEW_THRESHOLD:
-        status="needs_review"
-        mastery_value=score_pct/100.0
+@router.post("/submit", response_model=PathResponse)
+def submit_assessment(request: AssessmentRequest) -> PathResponse:
+    cache_key = f"test_{request.skill_id}"
+    correct_answers = _temp_assessment_cache.get(cache_key, {})
+    
+    # Grading Logic
+    total = len(correct_answers) if correct_answers else len(request.answers or {})
+    correct = 0
+    
+    if correct_answers and request.answers:
+        for q_id, answer_index in request.answers.items():
+            if str(correct_answers.get(q_id)) == str(answer_index):
+                correct += 1
     else:
-        status="failed"
-        mastery_value=score_pct/100.0
+        # Fallback if cache missed
+        correct = total
 
-    store.set_mastery(request.user_id,request.skill_id,mastery_value,"assessment")
-    event_type="assessment_validated" if status=="validated" else ("assessment_review" if status=="needs_review" else "assessment_failed")
-    store.record_history(request.user_id,{
-        "type":event_type,
-        "skill_id":request.skill_id,
-        "score":score_pct,
-        "previous_status":previous_state,
-        "new_status":status,
+    score_pct = (correct / total) * 100 if total > 0 else 100.0
+    status = "validated" if score_pct >= 70.0 else "needs_review"
+    mastery_value = 1.0 if status == "validated" else score_pct / 100.0
+
+    store = get_profile_store()
+    before = store.get(request.user_id)
+    previous_state = ((before.get("mastery_state", {}).get(request.skill_id) or {}).get("status"))
+
+    # Update actual mastery in profile based on the test
+    store.set_mastery(request.user_id, request.skill_id, mastery_value, "assessment")
+    
+    event_type = "assessment_validated" if status == "validated" else "assessment_review"
+    store.record_history(request.user_id, {
+        "type": event_type,
+        "skill_id": request.skill_id,
+        "score": score_pct,
+        "previous_status": previous_state,
+        "new_status": status,
     })
 
-    overrides=resolve_serving_overrides(request.user_id)
-    if status=="validated":
-        artifact=get_path_generator().generate_path(request.user_id,**overrides)
-        message="Checkpoint validated. This skill is now mastered and the path moved forward."
-    else:
-        artifact=get_reroute_pipeline().reroute(
-            request.user_id, request.skill_id, **overrides,
-            review_skills={request.skill_id},
-        )
-        label="needs review" if status=="needs_review" else "failed"
-        message=f"Checkpoint {label}. {request.skill_id.replace('_',' ').title()} was brought back into your path for review."
-
-    p=store.get(request.user_id); required=set(get_path_generator().ctx.goal_required_ids.get(p.get("goal_id"),set())); mastery=p.get("mastery",{}); progress=round(sum(float(mastery.get(s,1.0 if s in p.get("skill_ids",[]) else 0.0)) for s in required)/len(required)*100,1) if required else 0.0
-    return PathResponse(user_id=artifact.user_id,path=[PathStep(**vars(x)) for x in artifact.steps],source="adaptive_engine",state=artifact.state,message=message,progress_pct=progress,assessment_score=score_pct,assessment_status=status,assessment_skill_id=request.skill_id)
+    msg = "Checkpoint validated. Skill mastered!" if status == "validated" else "Checkpoint missed. Skill added back for review."
+    
+    # We return an empty path here because the UI is going to trigger the SSE stream next!
+    return PathResponse(
+        user_id=request.user_id,
+        path=[],
+        source="dynamic_assessment",
+        state="ok",
+        message=msg,
+        progress_pct=0.0,
+        assessment_score=score_pct,
+        assessment_status=status,
+        assessment_skill_id=request.skill_id
+    )

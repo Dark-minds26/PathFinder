@@ -101,6 +101,20 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(37,112,75,.18);o
   <footer class="footer"><span>Demo learner <span class="mono" id="user-id-display"></span> · profile stored locally in this browser</span><button id="reset-btn" type="button">Reset this learner</button></footer>
 </div>
 
+<!-- Custom Reset Learner Modal (Added Here) -->
+<div id="reset-modal" class="modal-backdrop" style="display: none; align-items: center; justify-content: center;">
+  <div class="modal" style="max-width: 400px; text-align: center; padding: 24px;">
+    <h3 style="margin-top: 0;">Start a fresh demo learner?</h3>
+    <p style="color: #666; margin-bottom: 24px; font-size: 14px; line-height: 1.5;">
+      The current local learner will no longer be active in this tab. Your previous progress will remain safely stored on the server under its unique ID.
+    </p>
+    <div style="display: flex; justify-content: center; gap: 12px;">
+      <button class="secondary" onclick="document.getElementById('reset-modal').style.display='none'">Cancel</button>
+      <button class="primary" onclick="confirmResetLearner()">Start Fresh</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <div class="modal-backdrop" id="modal-backdrop" role="dialog" aria-modal="true"><div class="modal" id="modal"></div></div>
 
@@ -192,12 +206,57 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(37,112,75,.18);o
       if(d.next_best_action){const n=d.next_best_action;$('next-action-title').textContent=titleize(n.skill_id);$('next-action-text').textContent=n.why||`Start ${n.course_title||'the next recommended step'}.`; $('next-action-status').textContent='Ready now';}
     }catch(e){}
   }
+  // In api/static/index.html
   async function fetchPath(showToast=true){
-    if(!currentGoalId){renderEmpty('no_goal');$('trail-status').textContent='Goal required';return false;}
-    generateBtn.disabled=true;const old=generateBtn.textContent;generateBtn.textContent='Updating…';
-    try{const r=await fetch('/path/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:USER_ID})});const d=await r.json();if(!r.ok)throw new Error(d.detail||`HTTP ${r.status}`);renderTrail(d.path,d.state,d.message);updateProgress(d.progress_pct);currentProfile.progress_pct=d.progress_pct;await refreshDashboard();if(showToast)notify('Roadmap refreshed from your current learner state.');return true;}
-    catch(e){renderEmpty('backend_failure');$('trail-status').textContent='Refresh failed';if(showToast)notify(e.message||'Could not refresh the roadmap.',true);return false;}
-    finally{generateBtn.disabled=!currentGoalId;generateBtn.textContent=currentGoalId?'Regenerate path':old;}
+      if(!currentGoalId){renderEmpty('no_goal');$('trail-status').textContent='Goal required';return false;}
+      generateBtn.disabled=true;const old=generateBtn.textContent;generateBtn.textContent='Streaming path…';
+      
+      try{
+          const response=await fetch('/path/generate',{
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({user_id:USER_ID})
+          });
+          if(!response.ok) throw new Error(`HTTP ${response.status}`);
+          
+          const reader=response.body.getReader();
+          const decoder=new TextDecoder('utf-8');
+          let currentPath=[];
+
+          while(true){
+              const {done,value}=await reader.read();
+              if(done) break;
+              
+              const chunkStr=decoder.decode(value, {stream: true});
+              const events=chunkStr.split('\n\n');
+              
+              for(const event of events){
+                  if(event.includes('[DONE]')) break;
+                  if(event.startsWith('data: ')){
+                      const jsonStr=event.replace('data: ','').trim();
+                      if(jsonStr){
+                          currentPath.push(JSON.parse(jsonStr));
+                          renderTrail(currentPath, 'ok', 'Streaming...');
+                      }
+                  }
+              }
+          }
+          
+          updateProgress(currentProfile.progress_pct);
+          await refreshDashboard();
+          if(showToast)notify('Roadmap dynamically generated via LLM.');
+          return true;
+      }
+      catch(e){
+          renderEmpty('backend_failure');
+          $('trail-status').textContent='Refresh failed';
+          if(showToast)notify(e.message||'Could not refresh the roadmap.',true);
+          return false;
+      }
+      finally{
+          generateBtn.disabled=!currentGoalId;
+          generateBtn.textContent=currentGoalId?'Regenerate path':old;
+      }
   }
 
   async function completeResource(step,button){button.disabled=true;try{const r=await fetch(`/learning/resources/${encodeURIComponent(step.course_id)}/complete?user_id=${encodeURIComponent(USER_ID)}&skill_id=${encodeURIComponent(step.skill_id)}`,{method:'POST'});const d=await r.json();if(!r.ok)throw new Error(d.detail||'Could not record learning');notify('Learning activity recorded. Re-ranking your next step.');addBubble(`Completed: ${step.course_title}`,'bot');await fetchPath(false);await refreshDashboard();}catch(e){notify(e.message,true)}finally{button.disabled=false;}}
