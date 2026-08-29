@@ -22,10 +22,28 @@ SHAP-backed explanations and a RAG-driven conversational profiling agent.
   Phase 2. A brand-new chat user (not in the synthetic training
   snapshot) gets a real path from `/path/generate` once their profile
   has a goal.
+- **Phase 4** - adaptive demo UI and end-to-end learning loop: done (see `PHASE4_REPORT.md`). The `/` demo is a dashboard-first conversational learning coach with persisted-profile hydration, skill progress, milestones, next-best-action, adaptive trail, real checkpoints, project evidence, grounded explanations, and safe empty/error states. The LLM remains limited to NLP/intent/profile extraction and grounded language; deterministic graph + ranking state controls the roadmap.
 
-## Note:
-  This project is tested with Python 3.11. Python 3.13 may cause dependency installation issues with packages such as shap and psycopg2-binary. Use Python             3.11 and create the virtual environment with it.
-  
+
+## Evaluation and leakage controls
+
+The training pipeline uses a deterministic **80/20 user-level holdout** (seed `42`). User assignment happens before user-dependent feature construction, so a user appears entirely in training or evaluation, never both. The evaluator reads a separate `evaluation_features.csv` produced before model fitting.
+
+Learning-event features are built chronologically by `occurred_at`. For an event at time `T`, mastery state and event-derived popularity contain only information available before `T`; state is updated only after the current event is converted into a feature row. Regression tests cover future-mastery leakage.
+
+Data validation is a hard gate: a failed validation raises and stops training. Model evaluation is also a hard gate: the candidate model is promoted from `model_candidate.pkl` to the serving `model.pkl` only when `ndcg_at_k >= score_threshold`. The evaluation report records the holdout methodology, metric, and threshold.
+
+Configuration contracts:
+
+- `score_threshold` controls model acceptance using NDCG@5.
+- `top_k_features` limits the number of feature attributions returned by the explainer.
+- `min_confidence` is a relative softmax confidence over candidate courses for each skill; low-confidence recommendations are skipped.
+- `max_path_length` limits the number of prerequisite-ordered skills considered.
+- `candidate_courses_per_skill` limits how many candidate courses are ranked for each skill; it is a cap, not a guarantee that that many courses exist.
+- `svd_components` controls the text embedding dimensionality.
+
+`expected_score` was removed because it did not control any model behavior.
+
 ## Run it
 
     pip install -r requirements.txt
@@ -36,6 +54,7 @@ SHAP-backed explanations and a RAG-driven conversational profiling agent.
     python -m unittest discover tests  # or: pytest
 
     uvicorn api.main:app --reload
+    # open http://127.0.0.1:8000/ for the demo UI, or call the API directly:
     # POST /profile/chat {"user_id": "u1", "message": "I want to be a data scientist"}
     # POST /path/generate {"user_id": "u1"}
     # GET  /explain/{course_id}/u1
@@ -57,3 +76,36 @@ SHAP-backed explanations and a RAG-driven conversational profiling agent.
 - `artifacts/` - pipeline outputs: ingested tables, the trained model,
   the skill graph, the evaluation report
 - `api/` - FastAPI app, routers, request/response schemas
+- `api/static/index.html` - the demo UI, served at `/` (mounted last
+  in `api/main.py` so it never shadows the routes above)
+- `DEPLOYMENT.md` - how to actually put this somewhere with a URL
+
+
+### Phase 7-11 personalization and LLM contract
+
+The ranking feature context is shared between training and serving and now includes:
+- `learning_style_fit`: visual -> video, reading -> text, practice -> interactive; missing preference is neutral (0.5).
+- `time_fit`: `min(1, weekly_hours / course_duration_hours)`; it personalizes workload without filtering courses.
+- `normalized_course_duration`: normalized catalog duration. This is a duration feature, not a prediction of completion time.
+
+Live profiles persist `weekly_hours` alongside goal, experience, learning style, and mastered `skill_ids`.
+The profile contract treats `skill_ids` as mastered only; explicit weak/unfamiliar/needs-to-learn statements are recorded as unmastered and never added as mastered.
+
+RAG remains TF-IDF + SVD. Existing canonical profile ids are reintroduced into the candidate set for later turns, so the LLM can only select known goal/skill ids while the persisted profile keeps information across turns. Groq/OpenAI API failures and malformed structured responses are surfaced as errors rather than silently converted into successful-looking profile updates.
+
+## Stage 4 — Adaptive learning loop
+
+Pathfinder now treats the roadmap as learner state rather than a one-shot list. The live profile records self-reported skills separately from validated assessment mastery, assessment attempts/history, completed learning activities, and project evidence. The deterministic engine uses the skill graph for prerequisite-aware gaps and the existing LightGBM/LambdaRank model for resource ranking.
+
+New capabilities include:
+- dynamic goal intelligence for unfamiliar goals (with explicit resource-coverage limits rather than fabricated courses)
+- mastery-aware progress and prerequisite boundaries
+- real deterministic checkpoints with persisted attempts and pass/fail adaptation
+- failure rerouting into practice/project-oriented review resources
+- successful assessment mastery updates and unlocking
+- first-class portfolio projects and learning-activity completion
+- deterministic weekly study planning from available hours
+- learner-state/dashboard API with skill mastery, milestones, history and next-best-action
+- UI actions for learning completion, projects, checkpoints and grounded recommendation explanations
+
+The existing Groq/OpenAI abstraction remains optional; the deterministic local fallback continues to make the complete learning loop testable without credentials or network access.
