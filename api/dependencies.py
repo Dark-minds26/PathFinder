@@ -90,16 +90,21 @@ def get_conversation_manager(user_id: str) -> ConversationManager:
 
 
 def resolve_serving_overrides(user_id: str) -> dict:
-    """Live ProfileStore entry, if one exists, formatted as the
-    goal_id / possessed_skills / experience_level kwargs PathGenerator
-    and explain_utils accept. Falls back to empty (meaning: use the
-    frozen training-snapshot lookups) for users only known from
-    synthetic training data."""
-    profile = get_profile_store().get(user_id)
+    profile=get_profile_store().get(user_id)
     if not profile.get("goal_id"):
         return {}
+    if profile.get("mastery"):
+        validated_skills={sid for sid,m in profile.get("mastery",{}).items() if float(m)>=0.80}
+    else:
+        validated_skills=set(profile.get("skill_ids", []))
     return {
-        "goal_id": profile.get("goal_id"),
-        "possessed_skills": set(profile.get("skill_ids", [])),
-        "experience_level": profile.get("experience_level"),
+        "goal_id":profile.get("goal_id"),
+        "possessed_skills":validated_skills,
+        "experience_level":profile.get("experience_level"),
+        "learning_style":profile.get("learning_style"),
+        "weekly_hours":profile.get("weekly_hours"),
+        "interests":profile.get("interests",[]),
+        "roadmap_preferences":profile.get("roadmap_preferences",{}),
+        "completed_course_ids":set(profile.get("completed_course_ids",[])),
+        "mastery":profile.get("mastery",{}),
     }

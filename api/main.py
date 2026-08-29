@@ -4,6 +4,10 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from api.routers import profile_router, path_router, explain_router, assessment_router
+from api.routers import learning_router
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(
     title="AI-powered personalized learning path recommender",
@@ -15,6 +19,7 @@ app.include_router(profile_router.router, prefix="/profile", tags=["profile"])
 app.include_router(path_router.router, prefix="/path", tags=["path"])
 app.include_router(explain_router.router, prefix="/explain", tags=["explain"])
 app.include_router(assessment_router.router, prefix="/assessment", tags=["assessment"])
+app.include_router(learning_router.router, prefix="/learning", tags=["learning"])
 
 
 @app.get("/health", tags=["health"])

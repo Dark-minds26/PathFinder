@@ -6,3 +6,4 @@ class ExplainResponse(BaseModel):
     user_id: str
     explanation: str
     feature_attributions: dict[str, float]
+    feature_weights: dict[str, float] = {}
