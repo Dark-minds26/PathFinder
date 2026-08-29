@@ -1,51 +1,58 @@
-"""Orchestrates one profiling conversation: RAG narrows the catalog to
-plausible candidates, the LLM client extracts structured fields
-constrained to those candidates, and ProfileStore persists whatever
-was confirmed. One instance per active conversation; the API layer
-keeps instances alive across turns (see api/dependencies.py) so
-`history` accumulates properly."""
+"""Conversation orchestration: grounded extraction + persistent profile state."""
 import sys
-
 from src.recommender.exception import RecommenderException
 from src.recommender.llm.llm_client import LLMClient
 from src.recommender.llm.profile_store import ProfileStore
 from src.recommender.llm.rag_engine import RAGEngine
-from src.recommender.logger import logging
+from src.recommender.goal_intelligence import normalize_goal
 
+RECOMMENDATION_FIELDS=("goal_id","experience_level","learning_style","weekly_hours","interests","roadmap_preferences","skill_ids","unmastered_skill_ids","goal_spec")
 
 class ConversationManager:
-    def __init__(self, user_id: str, rag: RAGEngine, llm: LLMClient, store: ProfileStore) -> None:
-        self.user_id = user_id
-        self.rag = rag
-        self.llm = llm
-        self.store = store
-        self.history: list[dict] = []
-
-    def handle_turn(self, message: str) -> tuple[str, float]:
+    def __init__(self,user_id,rag,llm,store): self.user_id=user_id; self.rag=rag; self.llm=llm; self.store=store; self.history=[]
+    def handle_turn(self,message,return_meta=False):
         try:
-            logging.info(f"Conversation turn for user {self.user_id}: {message!r}")
-            candidate_goals = self.rag.retrieve_goals(message, top_k=3)
-            candidate_skills = self.rag.retrieve_skills(message, top_k=8)
-
-            result = self.llm.profile_turn(
-                history=self.history,
-                user_message=message,
-                candidate_goals=candidate_goals,
-                candidate_skills=candidate_skills,
-            )
-
-            self.history.append({"role": "user", "content": message})
-            self.history.append({"role": "assistant", "content": result["reply"]})
-
-            self.store.update(
-                self.user_id,
-                goal_id=result.get("goal_id"),
-                experience_level=result.get("experience_level"),
-                learning_style=result.get("learning_style"),
-                new_skill_ids=result.get("skill_ids") or [],
-            )
-            completeness = self.store.completeness(self.user_id)
-            logging.info(f"Profile completeness for {self.user_id}: {completeness}")
-            return result["reply"], completeness
-        except Exception as e:
-            raise RecommenderException(e, sys) from e
+            current=self.store.get(self.user_id)
+            curated=getattr(self.rag,"_goals",[])
+            dynamic=normalize_goal(message,curated,getattr(self.rag,"_skills",[]))
+            goals=self.rag.retrieve_goals(message,top_k=5)
+            retrieved_skills=self.rag.retrieve_skills(message,top_k=12)
+            text=message.lower()
+            exact=[x for x in getattr(self.rag,"_skills",[]) if x["skill_name"].lower() in text or any(w in text for w in x["skill_name"].lower().replace("/"," ").split() if len(w)>3)]
+            # Keep RAG-ranked skills first, but expose the full canonical catalog to the
+            # LLM as a safe lookup so it cannot fail simply because a valid skill was
+            # mentioned outside the top-K retrieval results. The model is still instructed
+            # to prefer the retrieved candidates.
+            all_skills=getattr(self.rag,"_skills",[])
+            skills=list({x["skill_id"]:x for x in retrieved_skills+exact+all_skills}.values())
+            goals,skills=self.rag.ground_profile(current,goals,skills)
+            if dynamic and dynamic.source=="dynamic":
+                result={"reply":f"I understand this as a {dynamic.title} goal. Pathfinder can decompose it, but the current catalog has limited curated resources for this domain. I’ll keep the goal and your profile so the path can adapt as resources become available.","goal_id":dynamic.goal_id,"skill_ids":[],"unmastered_skill_ids":[],"experience_level":None,"learning_style":None,"weekly_hours":None,"interests":[],"roadmap_preferences":{}}
+            else:
+                result=self.llm.profile_turn(history=self.history,user_message=message,candidate_goals=goals,candidate_skills=skills,current_profile=current)
+                # Deterministic signals are used as a consistency layer around the LLM:
+                # explicit canonical goals, day-vs-week study time, and natural-language
+                # learning style should never be lost because the model phrased them differently.
+                if dynamic and dynamic.source=="curated":
+                    result["goal_id"]=dynamic.goal_id
+                import re
+                if re.search(r"\b(hours?|hrs?)\s*(?:per|a|each)?\s*(?:day|daily)\b", text):
+                    m=re.search(r"(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\s*(?:per|a|each)?\s*(?:day|daily)\b", text)
+                    if m: result["weekly_hours"]=float(m.group(1))*7
+                elif re.search(r"\b(hours?|hrs?)\s*(?:per|a|each)?\s*(?:week|weekly)\b", text):
+                    m=re.search(r"(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\s*(?:per|a|each)?\s*(?:week|weekly)\b", text)
+                    if m: result["weekly_hours"]=float(m.group(1))
+                if any(x in text for x in ("hands-on","hands on","practical","learning by doing","project-based","project based","learn by building")):
+                    result["learning_style"]="practice"
+                # Exact skill mentions are canonical and safe to merge into the LLM result.
+                if exact:
+                    positive=[x["skill_id"] for x in exact if x["skill_id"] not in set(result.get("unmastered_skill_ids",[]))]
+                    result["skill_ids"]=list(dict.fromkeys((result.get("skill_ids") or [])+positive))
+            self.history += [{"role":"user","content":message},{"role":"assistant","content":result["reply"]}]
+            goal_spec=None
+            if dynamic and dynamic.source=="dynamic": goal_spec={"title":dynamic.title,"domain":dynamic.domain,"competencies":dynamic.competencies,"source":dynamic.source,"confidence":dynamic.confidence,"required_skill_ids":dynamic.required_skill_ids,"resource_available":dynamic.resource_available}
+            updated=self.store.update(self.user_id,goal_id=result.get("goal_id"),experience_level=result.get("experience_level"),learning_style=result.get("learning_style"),weekly_hours=result.get("weekly_hours"),new_skill_ids=result.get("skill_ids") or [],unmastered_skill_ids=result.get("unmastered_skill_ids") or [],interests=result.get("interests") or [],roadmap_preferences=result.get("roadmap_preferences") or {},goal_spec=goal_spec)
+            changed=any(updated.get(k)!=current.get(k) for k in RECOMMENDATION_FIELDS)
+            payload={"profile":updated,"recommendation_changed":changed,"extracted":result}
+            return (result["reply"],self.store.completeness(self.user_id),payload) if return_meta else (result["reply"],self.store.completeness(self.user_id))
+        except Exception as e: raise RecommenderException(e,sys) from e

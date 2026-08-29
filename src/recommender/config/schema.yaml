@@ -4,6 +4,8 @@ users:
     career_goal_id: str
     experience_level: str
     learning_style: str
+    weekly_hours: int
+    interests: str
   primary_key: user_id
   foreign_keys:
     career_goal_id: career_goals.goal_id

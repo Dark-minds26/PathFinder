@@ -1,70 +1,59 @@
-"""Prompt construction for the two LLM-backed flows: conversational
-profiling and recommendation explanation. Kept separate from
-llm_client.py so the prompt text can be iterated on without touching
-provider wiring, and so LocalStubLLMClient's template_explanation can
-reuse the same FEATURE_EXPLANATIONS the real prompt uses."""
+"""Prompt contracts for profiling and grounded explanations."""
 import json
 
-SYSTEM_PROMPT_PROFILING = """You are a learning-path assistant conducting a short conversational \
-intake. Ask naturally about the user's current skills, career goal, and preferred learning \
-style, and extract fields as soon as you're confident about them - don't wait until the end.
+CANONICAL_INTERESTS = ["generative_ai", "llms", "computer_vision", "nlp", "mlops"]
 
-You will be given CANDIDATE_GOALS and CANDIDATE_SKILLS - the only valid ids for this system. \
-Only ever return an id that appears in one of those lists; never invent one. Only fill a field \
-once the user's message actually supports it.
+SYSTEM_PROMPT_PROFILING = f"""You are Pathfinder, a learning-path assistant conducting a short conversational intake.
+Extract only information actually supported by the user's message and preserve prior confirmed information from CURRENT_PROFILE.
+Profile-state contract:
+- skill_ids means MASTERED skills only. Never add a skill because the user says weak, beginner, needs to learn, wants to improve, unfamiliar, failed, or does not know it.
+- Put explicit skill gaps in unmastered_skill_ids.
+- goal_id and skill ids must use only canonical ids from the supplied catalog. Prefer the RAG-retrieved candidates, but if the user explicitly mentions another canonical catalog item, select its exact canonical id rather than inventing one.
+- interests must use only these canonical values: {json.dumps(CANONICAL_INTERESTS)}. Ignore unsupported interests rather than inventing values.
+- weekly_hours is the user's available study time per week. Carefully distinguish day/daily from week/weekly. Convert daily availability to weekly by multiplying by 7.
+- experience_level is beginner/intermediate/advanced.
+- learning_style is visual/reading/practice. Natural language such as hands-on, practical, learning by doing, project-based maps to practice; video/visual maps to visual; books/docs/reading maps to reading.
+- roadmap_preferences is a dictionary with only boolean keys: more_projects, more_ai, less_cloud, slower_pace, faster_pace. Only set a key when the user explicitly asks for that change.
+- If the user says they dislike the roadmap but gives no specific change, ask what they want changed and set no preference.
+- If the user asks about an unsupported career, do not replace it with another goal. Tell them it is unsupported and preserve the previous supported goal.
+- Classify intent as one of: profile_update, roadmap_feedback, roadmap_question, unsupported_goal, general_question.
+- Do not claim that the roadmap changed unless a structured profile/preference change actually occurred.
 
-Always reply with a single JSON object, no other text, shaped exactly like:
-{"reply": "<your conversational reply to the user>",
- "extracted": {"goal_id": "<id from CANDIDATE_GOALS, or null>",
-               "skill_ids": ["<id from CANDIDATE_SKILLS>", ...],
-               "experience_level": "<beginner|intermediate|advanced or null>",
-               "learning_style": "<visual|reading|practice or null>"}}"""
+Return exactly one JSON object:
+{{"reply":"<conversational reply>","intent":"profile_update","extracted":{{"goal_id":null,"skill_ids":[],"unmastered_skill_ids":[],"experience_level":null,"learning_style":null,"weekly_hours":null,"interests":[],"roadmap_preferences":{{}}}}}}
+"""
 
-SYSTEM_PROMPT_EXPLANATION = """Given a course, a user's career goal, and a set of numeric \
-feature attributions, write one short, plain-language paragraph (2-3 sentences) explaining why \
-the course was recommended. Reference only the attributions provided - never invent a reason \
-that isn't backed by one of them - and lead with whichever attribution has the largest \
-magnitude."""
+SYSTEM_PROMPT_EXPLANATION = """Given a course, a user's career goal, and grounded feature attributions, write a short plain-language explanation. Never mention raw scores, feature names, SHAP, or model jargon. Translate: skill_gap_match -> Covers a missing skill; goal_alignment -> Fits your career goal; difficulty_fit -> Matches your current level; popularity -> Commonly useful for learners; normalized_course_duration -> Has a manageable course length; learning_style_fit -> Matches your preferred learning style; time_fit -> Fits your weekly study time; interest_fit -> Matches your interests; content_similarity -> Closely matches what you need next. Mention style, weekly time, and interests when those grounded reasons are present. Keep to 2-3 sentences."""
 
 FEATURE_EXPLANATIONS = {
-    "skill_gap_match": "how directly it teaches skills you're currently missing",
-    "goal_alignment": "how well it lines up with your career goal",
-    "difficulty_fit": "matching your current experience level",
-    "popularity": "how well it's worked for learners like you",
-    "predicted_time_to_complete": "fitting the time you have available",
-    "content_similarity": "how closely its content matches what you need next",
+    "skill_gap_match": "Covers a missing skill",
+    "goal_alignment": "Fits your career goal",
+    "difficulty_fit": "Matches your current level",
+    "popularity": "Commonly useful for learners",
+    "normalized_course_duration": "Has a manageable course length",
+    "learning_style_fit": "Matches your preferred learning style",
+    "time_fit": "Fits your weekly study time",
+    "interest_fit": "Matches your interests",
+    "content_similarity": "Closely matches what you need next",
 }
 
 
-def build_profiling_user_content(
-    user_message: str, candidate_goals: list[dict], candidate_skills: list[dict]
-) -> str:
-    """The user-turn content sent to a real LLM: the RAG-narrowed
-    candidate lists followed by what the person actually said."""
-    return (
-        f"CANDIDATE_GOALS: {json.dumps(candidate_goals)}\n"
-        f"CANDIDATE_SKILLS: {json.dumps(candidate_skills)}\n"
-        f"USER_MESSAGE: {user_message}"
-    )
+def build_profiling_user_content(user_message, candidate_goals, candidate_skills, current_profile=None):
+    return (f"CANDIDATE_GOALS: {json.dumps(candidate_goals)}\n"
+            f"CANDIDATE_SKILLS: {json.dumps(candidate_skills)}\n"
+            f"CURRENT_PROFILE: {json.dumps(current_profile or {})}\n"
+            f"USER_MESSAGE: {user_message}")
 
 
-def build_explanation_user_content(course_title: str, goal_title: str, attributions: dict) -> str:
+def build_explanation_user_content(course_title, goal_title, attributions):
     ranked = dict(sorted(attributions.items(), key=lambda kv: -abs(kv[1])))
-    return (
-        f'COURSE: "{course_title}"\n'
-        f'CAREER_GOAL: "{goal_title}"\n'
-        f"ATTRIBUTIONS (most to least influential): {json.dumps(ranked)}"
-    )
+    readable = {FEATURE_EXPLANATIONS.get(k, k): v for k, v in ranked.items()}
+    return f'COURSE: "{course_title}"\nCAREER_GOAL: "{goal_title}"\nGROUNDED_REASONS: {json.dumps(readable)}'
 
 
-def template_explanation(course_title: str, attributions: dict) -> str:
-    """Deterministic fallback used by LocalStubLLMClient (no LLM
-    credentials configured): turns the same numeric attributions a
-    real LLM would have been given into one plain sentence, so
-    /explain still returns a real, human-readable answer offline."""
+def template_explanation(course_title, attributions):
     ranked = sorted(attributions.items(), key=lambda kv: -abs(kv[1]))
-    positive = [(name, val) for name, val in ranked if val > 0][:2]
-    if not positive:
-        return f'"{course_title}" was recommended based on an overall fit across your profile.'
-    reasons = " and ".join(FEATURE_EXPLANATIONS.get(name, name) for name, _ in positive)
-    return f'"{course_title}" was recommended mainly because of {reasons}.'
+    reasons = [FEATURE_EXPLANATIONS[n] for n, _ in ranked if n in FEATURE_EXPLANATIONS]
+    if not reasons:
+        return f"{course_title} is part of the recommended sequence for your current goal."
+    return f"{course_title} was selected because it " + ", ".join(r.lower() for r in reasons[:3]) + "."

@@ -59,3 +59,22 @@ class RAGEngine:
             return self._top_k(self._embed(query), self._goals, self._goal_emb, top_k)
         except Exception as e:
             raise RecommenderException(e, sys) from e
+
+    def canonical_goal(self, goal_id: str) -> dict | None:
+        return next((g for g in self._goals if g["goal_id"] == goal_id), None)
+
+    def canonical_skill(self, skill_id: str) -> dict | None:
+        return next((s for s in self._skills if s["skill_id"] == skill_id), None)
+
+    def ground_profile(self, profile: dict, goals: list[dict], skills: list[dict]) -> tuple[list[dict], list[dict]]:
+        """Keep already-confirmed canonical ids available to later turns."""
+        goal = self.canonical_goal(profile.get("goal_id")) if profile.get("goal_id") else None
+        if goal and goal not in goals:
+            goals = [goal, *goals]
+        existing = []
+        for sid in profile.get("skill_ids", []):
+            skill = self.canonical_skill(sid)
+            if skill and skill not in skills:
+                existing.append(skill)
+        return goals, existing + skills
+

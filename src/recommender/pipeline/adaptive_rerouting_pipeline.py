@@ -25,6 +25,13 @@ class AdaptiveReroutingPipeline:
         goal_id: str | None = None,
         possessed_skills: set | None = None,
         experience_level: str | None = None,
+        learning_style: str | None = None,
+        weekly_hours: float | int | None = None,
+        interests: list[str] | set[str] | None = None,
+        roadmap_preferences: dict | None = None,
+        completed_course_ids: set | None = None,
+        mastery: dict | None = None,
+        review_skills: set | None = None,
     ) -> PathGeneratorArtifact:
         return self._generator.generate_path(
             user_id,
@@ -32,4 +39,9 @@ class AdaptiveReroutingPipeline:
             goal_id=goal_id,
             possessed_skills=possessed_skills,
             experience_level=experience_level,
+            learning_style=learning_style,
+            weekly_hours=weekly_hours,
+            interests=interests,
+            roadmap_preferences=roadmap_preferences,
+            completed_course_ids=completed_course_ids, mastery=mastery, review_skills=review_skills or {failed_skill_id},
         )

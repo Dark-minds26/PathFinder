@@ -34,10 +34,14 @@ class FeatureContext:
         popularity_by_course: dict,
         difficulty_by_course: dict,
         duration_by_course: dict,
+        format_by_course: dict,
         title_by_course: dict,
         max_duration: float,
         user_goal: dict,
         user_experience: dict,
+        user_learning_style: dict,
+        user_weekly_hours: dict,
+        user_interests: dict,
         possessed_by_user: dict,
         skill_name_by_id: dict,
     ) -> None:
@@ -54,10 +58,14 @@ class FeatureContext:
         self.popularity_by_course = popularity_by_course
         self.difficulty_by_course = difficulty_by_course
         self.duration_by_course = duration_by_course
+        self.format_by_course = format_by_course
         self.title_by_course = title_by_course
         self.max_duration = max_duration
         self.user_goal = user_goal
         self.user_experience = user_experience
+        self.user_learning_style = user_learning_style
+        self.user_weekly_hours = user_weekly_hours
+        self.user_interests = user_interests
         self.possessed_by_user = possessed_by_user
         self.skill_name_by_id = skill_name_by_id
         self._n_components = svd.n_components
@@ -80,10 +88,14 @@ class FeatureContext:
             popularity_by_course=preprocessor["popularity_by_course"],
             difficulty_by_course=preprocessor["difficulty_by_course"],
             duration_by_course=preprocessor["duration_by_course"],
+            format_by_course=preprocessor["format_by_course"],
             title_by_course=preprocessor["title_by_course"],
             max_duration=preprocessor["max_duration"],
             user_goal=preprocessor["user_goal"],
             user_experience=preprocessor["user_experience"],
+            user_learning_style=preprocessor["user_learning_style"],
+            user_weekly_hours=preprocessor["user_weekly_hours"],
+            user_interests=preprocessor.get("user_interests", {}),
             possessed_by_user=preprocessor["possessed_by_user"],
             skill_name_by_id=preprocessor["skill_name_by_id"],
         )
@@ -125,6 +137,10 @@ class FeatureContext:
         missing_set: set,
         goal_id: str | None = None,
         experience_level: str | None = None,
+        learning_style: str | None = None,
+        weekly_hours: float | int | None = None,
+        interests: list[str] | set[str] | None = None,
+        popularity_override: float | None = None,
     ) -> dict:
         c_vec = self.course_vectors.get(course_id, np.zeros(self.n_skills))
         resolved_goal = goal_id or self.user_goal.get(user_id)
@@ -140,8 +156,49 @@ class FeatureContext:
         d_user = DIFFICULTY_RANK.get(resolved_experience, 1)
         difficulty_fit = 1.0 - abs(d_course - d_user) / 2.0
 
-        popularity = float(self.popularity_by_course.get(course_id, 0.5))
-        predicted_time_to_complete = self.duration_by_course.get(course_id, 0) / self.max_duration
+        popularity = float(
+            popularity_override if popularity_override is not None else self.popularity_by_course.get(course_id, 0.5)
+        )
+        duration = float(self.duration_by_course.get(course_id, 0) or 0)
+        normalized_course_duration = duration / self.max_duration
+
+        style_to_format = {"visual": "video", "reading": "text", "practice": "interactive"}
+        resolved_style = learning_style or self.user_learning_style.get(user_id)
+        target_format = self.format_by_course.get(course_id)
+        learning_style_fit = 0.5 if resolved_style is None else (
+            1.0 if target_format == style_to_format.get(resolved_style) else 0.0
+        )
+
+        raw_weekly_hours = weekly_hours if weekly_hours is not None else self.user_weekly_hours.get(user_id)
+        try:
+            weekly_hours = float(raw_weekly_hours) if raw_weekly_hours is not None else None
+        except (TypeError, ValueError):
+            weekly_hours = None
+        if weekly_hours is None:
+            time_fit = 0.5
+        elif weekly_hours <= 0:
+            time_fit = 0.0
+        elif duration <= 0:
+            time_fit = 1.0
+        else:
+            time_fit = min(1.0, weekly_hours / duration)
+
+        resolved_interests = interests if interests is not None else self.user_interests.get(user_id, [])
+        resolved_interests = {str(x).strip().lower() for x in (resolved_interests or [])}
+        skill_name = self.skill_name_by_id.get(next(iter(c_skills), ""), "").lower()
+        interest_keywords = {
+            "generative_ai": {"llm", "rag", "deep learning", "pytorch", "ai"},
+            "llms": {"llm", "rag", "deep learning", "pytorch"},
+            "computer_vision": {"deep learning"},
+            "nlp": {"llm", "rag", "deep learning"},
+            "mlops": {"mlops", "model serving", "docker", "cloud", "kubernetes"},
+        }
+        matched = 0
+        for interest in resolved_interests:
+            keywords = interest_keywords.get(interest, set())
+            if interest in skill_name or any(k in skill_name for k in keywords):
+                matched += 1
+        interest_fit = (matched / len(resolved_interests)) if resolved_interests else 0.5
 
         c_emb = self.course_text_emb_by_id.get(course_id)
         q_emb = self._skill_query_embedding(missing_set) if missing_set else np.zeros(self._n_components)
@@ -156,6 +213,9 @@ class FeatureContext:
             "goal_alignment": goal_alignment,
             "difficulty_fit": difficulty_fit,
             "popularity": popularity,
-            "predicted_time_to_complete": predicted_time_to_complete,
+            "normalized_course_duration": normalized_course_duration,
+            "learning_style_fit": learning_style_fit,
+            "time_fit": time_fit,
+            "interest_fit": interest_fit,
             "content_similarity": content_similarity,
         }

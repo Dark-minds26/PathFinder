@@ -60,8 +60,7 @@ class ConfigurationManager:
 
     def get_model_trainer_config(self) -> ModelTrainerConfig:
         return ModelTrainerConfig(
-            trained_model_path=os.path.join(ARTIFACT_DIR, "model", "model.pkl"),
-            expected_score=self.params.get("expected_score", 0.6),
+            candidate_model_path=os.path.join(ARTIFACT_DIR, "model", "model_candidate.pkl"),
             model_params=self.params.get("model_params", {}),
         )
 
@@ -69,6 +68,7 @@ class ConfigurationManager:
         return ModelEvaluatorConfig(
             evaluation_report_path=os.path.join(ARTIFACT_DIR, "evaluation", "report.yaml"),
             score_threshold=self.params.get("score_threshold", 0.05),
+            accepted_model_path=os.path.join(ARTIFACT_DIR, "model", "model.pkl"),
         )
 
     def get_explainer_config(self) -> ExplainerConfig:

@@ -45,6 +45,17 @@ class BaselineAttributionExplainer:
         return contributions
 
 
+class ConfiguredExplainer:
+    """Persist an explainer together with the explanation-size contract."""
+
+    def __init__(self, explainer, top_k_features: int) -> None:
+        self.explainer = explainer
+        self.top_k_features = max(1, int(top_k_features))
+
+    def shap_values(self, X: np.ndarray) -> np.ndarray:
+        return self.explainer.shap_values(X)
+
+
 class Explainer:
     """Wraps the accepted model so every recommendation can be traced
     back to feature-level attributions - skill-gap match, goal
@@ -69,14 +80,15 @@ class Explainer:
             estimator = getattr(model, "estimator", model)
 
             if _HAS_SHAP:
-                explainer = shap.TreeExplainer(estimator)
+                base_explainer = shap.TreeExplainer(estimator)
                 backend = "shap-tree-explainer"
             else:
                 logging.info("shap not installed - falling back to baseline attribution")
                 baseline = np.zeros(len(FEATURE_COLUMNS))
-                explainer = BaselineAttributionExplainer(model, baseline)
+                base_explainer = BaselineAttributionExplainer(model, baseline)
                 backend = "baseline-attribution-fallback"
 
+            explainer = ConfiguredExplainer(base_explainer, self.config.top_k_features)
             Path(self.config.explainer_object_path).parent.mkdir(parents=True, exist_ok=True)
             with open(self.config.explainer_object_path, "wb") as f:
                 pickle.dump(explainer, f)

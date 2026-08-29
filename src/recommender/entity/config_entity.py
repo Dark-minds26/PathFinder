@@ -30,8 +30,7 @@ class SkillGraphConfig:
 
 @dataclass
 class ModelTrainerConfig:
-    trained_model_path: str
-    expected_score: float
+    candidate_model_path: str
     model_params: dict
 
 
@@ -39,6 +38,7 @@ class ModelTrainerConfig:
 class ModelEvaluatorConfig:
     evaluation_report_path: str
     score_threshold: float
+    accepted_model_path: str
 
 
 @dataclass

@@ -17,7 +17,9 @@ class DataValidationArtifact:
 class DataTransformationArtifact:
     transformed_object_path: str
     transformed_data_path: str
+    evaluation_data_path: str
     num_rows: int
+    evaluation_num_rows: int
     feature_columns: list
 
 
@@ -33,6 +35,7 @@ class ModelTrainerArtifact:
     trained_model_path: str
     train_score: float
     backend: str
+    feature_weights: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -55,9 +58,16 @@ class PathStep:
     course_title: str
     sequence_order: int
     predicted_score: float
+    duration_hours: float = 0.0
+    format: str = "text"
+    status: str = "available"
+    why: str | None = None
+    competency: str | None = None
 
 
 @dataclass
 class PathGeneratorArtifact:
     user_id: str
     steps: list = field(default_factory=list)
+    state: str = "ok"
+    message: str | None = None

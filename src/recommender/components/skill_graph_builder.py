@@ -54,21 +54,34 @@ class SkillGraphBuilder:
 
 
 def get_missing_skills_ordered(
-    graph: nx.DiGraph, possessed_skills: set, required_skills: set
+    graph: nx.DiGraph,
+    possessed_skills: set | None,
+    required_skills: set,
+    mastery_states: dict | None = None,
 ) -> list:
-    """Given a built graph, the skills a user already has, and the skills
-    their goal requires: expand to the full prerequisite closure of
-    what's missing, then return it in a valid learning order.
+    """Return required missing skills in prerequisite-safe order.
 
-    Topological sort isn't unique across independent branches, so ties
-    are broken by graph distance from a root (fewer hops first) then by
-    skill_id, for a deterministic, sensibly front-loaded order.
+    A validated skill is a *hard boundary*: it is considered mastered and is
+    never reintroduced merely because a downstream goal depends on it.
+    Skills marked ``needs_review`` or ``failed`` are *not* boundaries, so they
+    are included again before downstream dependents. ``possessed_skills`` is
+    retained as a backward-compatible fallback for callers that predate the
+    explicit mastery-state contract.
     """
-    missing = {s for s in required_skills if s not in possessed_skills}
+    possessed = set(possessed_skills or set())
+    if mastery_states is not None:
+        validated = set()
+        for skill_id, raw in mastery_states.items():
+            status = raw.get("status") if isinstance(raw, dict) else getattr(raw, "status", None)
+            if status == "validated":
+                validated.add(skill_id)
+        possessed = validated
+
+    missing = {s for s in required_skills if s not in possessed}
     closure = set(missing)
     for skill in missing:
         if skill in graph:
-            closure |= {a for a in nx.ancestors(graph, skill) if a not in possessed_skills}
+            closure |= {a for a in nx.ancestors(graph, skill) if a not in possessed}
 
     if not closure:
         return []

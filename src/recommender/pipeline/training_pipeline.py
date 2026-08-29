@@ -27,10 +27,8 @@ class TrainingPipeline:
             ingestion_artifact, self.config_manager.get_data_validation_config()
         ).initiate_data_validation()
         if not validation_artifact.validation_status:
-            logging.warning(
-                "Data validation failed - see %s. Continuing on synthetic seed "
-                "data, but this should hard-stop the pipeline on real sources.",
-                validation_artifact.report_file_path,
+            raise ValueError(
+                f"Data validation failed; training pipeline stopped. See {validation_artifact.report_file_path}"
             )
 
         SkillGraphBuilder(
@@ -48,6 +46,12 @@ class TrainingPipeline:
         evaluator_artifact = ModelEvaluator(
             trainer_artifact, transformation_artifact, self.config_manager.get_model_evaluator_config()
         ).initiate_model_evaluation()
+
+        if not evaluator_artifact.is_model_accepted:
+            raise ValueError(
+                "Model evaluation rejected the candidate; pipeline stopped before explainer build. "
+                f"Metrics: {evaluator_artifact.metrics}"
+            )
 
         Explainer(
             evaluator_artifact, self.config_manager.get_explainer_config()

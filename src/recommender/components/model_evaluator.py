@@ -1,4 +1,4 @@
-import hashlib
+import shutil
 import sys
 from pathlib import Path
 
@@ -17,13 +17,7 @@ from src.recommender.exception import RecommenderException
 from src.recommender.logger import logging
 from src.recommender.utils.main_utils import load_object, write_yaml
 
-EVAL_HOLDOUT_FRACTION = 0.2
 K = 5
-
-
-def _is_eval_user(user_id: str) -> bool:
-    digest = hashlib.md5(str(user_id).encode()).hexdigest()
-    return (int(digest, 16) % 100) < int(EVAL_HOLDOUT_FRACTION * 100)
 
 
 def _average_precision_at_k(relevance: np.ndarray, k: int) -> float:
@@ -37,16 +31,10 @@ def _average_precision_at_k(relevance: np.ndarray, k: int) -> float:
 
 
 class ModelEvaluator:
-    """Scores the trained model on a held-out slice of users - NDCG@k
-    and MAP@k for ranking quality, coverage for catalog diversity - and
-    decides whether it clears the bar to become the registry's accepted
-    model.
+    """Evaluate only the feature rows belonging to users excluded from training.
 
-    Caveat worth being upfront about: the trainer currently fits on the
-    full synthetic dataset, so this read on held-out *users* is a proxy
-    for generalization rather than a strict train/test split. Once real
-    interaction volume is large enough to afford excluding an eval slice
-    from training entirely, that's the natural next tightening.
+    The evaluation set is produced by DataTransformation before model fitting.
+    A rejected candidate is never promoted to the serving model path.
     """
 
     def __init__(
@@ -59,17 +47,22 @@ class ModelEvaluator:
         self.data_transformation_artifact = data_transformation_artifact
         self.config = config
 
+    @staticmethod
+    def model_feature_weights(model) -> dict[str, float]:
+        """Expose normalized model-global importance for explainability."""
+        if hasattr(model, "feature_weights") and callable(model.feature_weights):
+            return model.feature_weights()
+        return {}
+
     def initiate_model_evaluation(self) -> ModelEvaluatorArtifact:
         try:
-            logging.info("Evaluating trained model")
+            logging.info("Evaluating trained candidate model on the held-out user set")
             model = load_object(self.model_trainer_artifact.trained_model_path)
-            df = pd.read_csv(self.data_transformation_artifact.transformed_data_path)
-            df["is_eval"] = df["user_id"].apply(_is_eval_user)
-            eval_df = df[df["is_eval"]]
-            if eval_df["user_id"].nunique() < 2:
-                eval_df = df
+            eval_df = pd.read_csv(self.data_transformation_artifact.evaluation_data_path)
+            if eval_df.empty or eval_df["user_id"].nunique() < 1:
+                raise ValueError("Evaluation set is empty; refusing to evaluate or promote the model")
 
-            X_eval = eval_df[FEATURE_COLUMNS].values
+            X_eval = eval_df[FEATURE_COLUMNS]
             eval_df = eval_df.assign(pred=model.predict(X_eval))
 
             ndcgs, aps, recommended = [], [], set()
@@ -82,9 +75,8 @@ class ModelEvaluator:
                 aps.append(_average_precision_at_k(group[RELEVANCE_COLUMN].values, K))
                 recommended.update(group.head(K)["course_id"])
 
-            total_courses = df["course_id"].nunique()
+            total_courses = eval_df["course_id"].nunique()
             coverage = len(recommended) / total_courses if total_courses else 0.0
-
             metrics = {
                 "ndcg_at_k": round(float(np.mean(ndcgs)), 4) if ndcgs else 0.0,
                 "map_at_k": round(float(np.mean(aps)), 4) if aps else 0.0,
@@ -92,16 +84,33 @@ class ModelEvaluator:
                 "eval_users": int(eval_df["user_id"].nunique()),
                 "k": K,
                 "backend": self.model_trainer_artifact.backend,
+                "methodology": "Deterministic 80/20 user-level holdout (seed=42). Users are entirely train or evaluation; evaluation rows are never used for model fitting.",
+                "score_threshold": float(self.config.score_threshold),
+                "acceptance_metric": "ndcg_at_k",
+                "feature_weights": self.model_feature_weights(model),
             }
             is_accepted = metrics["ndcg_at_k"] >= self.config.score_threshold
+            metrics["is_model_accepted"] = bool(is_accepted)
 
             Path(self.config.evaluation_report_path).parent.mkdir(parents=True, exist_ok=True)
             write_yaml(self.config.evaluation_report_path, metrics, replace=True)
 
-            logging.info(f"Evaluation metrics: {metrics}, accepted={is_accepted}")
+            if is_accepted:
+                Path(self.config.accepted_model_path).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(self.model_trainer_artifact.trained_model_path, self.config.accepted_model_path)
+                logging.info("Model accepted and promoted to %s", self.config.accepted_model_path)
+                best_model_path = self.config.accepted_model_path
+            else:
+                logging.error(
+                    "Model rejected: NDCG@%d=%.4f is below threshold %.4f; candidate will not be promoted",
+                    K, metrics["ndcg_at_k"], self.config.score_threshold,
+                )
+                best_model_path = self.model_trainer_artifact.trained_model_path
+
+            logging.info("Evaluation metrics: %s, accepted=%s", metrics, is_accepted)
             return ModelEvaluatorArtifact(
                 is_model_accepted=is_accepted,
-                best_model_path=self.model_trainer_artifact.trained_model_path,
+                best_model_path=best_model_path,
                 metrics=metrics,
             )
         except Exception as e:
