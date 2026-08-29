@@ -1,8 +1,7 @@
-expected_score: 0.6
-score_threshold: 0.0
+score_threshold: 0.5
 top_k_features: 5
 max_path_length: 20
-min_confidence: 0.5
+min_confidence: 0.2
 candidate_courses_per_skill: 5
 svd_components: 24
 num_synthetic_users: 300

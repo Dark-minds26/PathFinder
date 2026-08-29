@@ -20,18 +20,26 @@ class TestProfileStore(unittest.TestCase):
 
     def test_completeness_increases_as_fields_fill_in(self):
         self.store.update("u1", goal_id="goal_x")
-        self.assertAlmostEqual(self.store.completeness("u1"), 0.25)
+        self.assertAlmostEqual(self.store.completeness("u1"), 0.2)
         self.store.update("u1", experience_level="beginner")
-        self.assertAlmostEqual(self.store.completeness("u1"), 0.5)
+        self.assertAlmostEqual(self.store.completeness("u1"), 0.4)
         self.store.update("u1", new_skill_ids=["a", "b"])
-        self.assertAlmostEqual(self.store.completeness("u1"), 0.75)
+        self.assertAlmostEqual(self.store.completeness("u1"), 0.6)
         self.store.update("u1", learning_style="reading")
+        self.assertAlmostEqual(self.store.completeness("u1"), 0.8)
+        self.store.update("u1", weekly_hours=8)
         self.assertAlmostEqual(self.store.completeness("u1"), 1.0)
 
     def test_skills_accumulate_across_updates_without_duplicates(self):
         self.store.update("u1", new_skill_ids=["a", "b"])
         self.store.update("u1", new_skill_ids=["b", "c"])
         self.assertEqual(sorted(self.store.get("u1")["skill_ids"]), ["a", "b", "c"])
+
+    def test_weekly_hours_persists_and_is_validated(self):
+        self.store.update("u1", weekly_hours=8)
+        self.assertEqual(self.store.get("u1")["weekly_hours"], 8.0)
+        with self.assertRaises(Exception):
+            self.store.update("u1", weekly_hours=200)
 
     def test_mark_unmastered_removes_a_previously_recorded_skill(self):
         self.store.update("u1", new_skill_ids=["a", "b"])

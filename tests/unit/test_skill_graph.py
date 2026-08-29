@@ -50,3 +50,30 @@ class TestSkillGraphTraversal(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TestCanonicalMasteryBoundaries(unittest.TestCase):
+    def test_validated_mastery_is_a_hard_boundary(self):
+        graph = nx.DiGraph([("python", "statistics"), ("statistics", "ml")])
+        ordered = get_missing_skills_ordered(
+            graph,
+            possessed_skills=set(),
+            required_skills={"ml"},
+            mastery_states={
+                "python": {"status": "validated"},
+                "statistics": {"status": "validated"},
+            },
+        )
+        self.assertEqual(ordered, ["ml"])
+
+    def test_failed_prerequisite_is_not_a_hard_boundary(self):
+        graph = nx.DiGraph([("python", "statistics"), ("statistics", "ml")])
+        ordered = get_missing_skills_ordered(
+            graph,
+            possessed_skills={"python", "statistics"},
+            required_skills={"ml"},
+            mastery_states={
+                "python": {"status": "validated"},
+                "statistics": {"status": "failed"},
+            },
+        )
+        self.assertEqual(ordered, ["statistics", "ml"])

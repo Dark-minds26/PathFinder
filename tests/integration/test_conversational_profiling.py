@@ -76,9 +76,45 @@ class TestConversationalProfiling(unittest.TestCase):
         self.assertIn("sql_basics", profile["skill_ids"])
         self.assertEqual(profile["experience_level"], "intermediate")
 
-        reply3, c3 = manager.handle_turn("I like hands-on practice the most.")
+        reply3, c3 = manager.handle_turn(
+            "I like hands-on practice the most and I can study 8 hours per week."
+        )
         self.assertEqual(c3, 1.0)
         self.assertEqual(self.store.get("new_user_1")["learning_style"], "practice")
+        self.assertEqual(self.store.get("new_user_1")["weekly_hours"], 8.0)
+
+    def test_profile_semantics_survive_three_turns(self):
+        manager = ConversationManager("semantic_user", self.rag, self.llm, self.store)
+        manager.handle_turn("I want to become a data scientist")
+        manager.handle_turn("I am intermediate with Python")
+        manager.handle_turn("I can study 8 hours per week and prefer visual learning")
+        profile = self.store.get("semantic_user")
+        self.assertEqual(profile["goal_id"], "goal_data_scientist")
+        self.assertEqual(profile["experience_level"], "intermediate")
+        self.assertEqual(profile["weekly_hours"], 8.0)
+        self.assertEqual(profile["learning_style"], "visual")
+        self.assertIn("python_basics", profile["skill_ids"])
+
+    def test_negative_statement_does_not_mark_skill_mastered(self):
+        manager = ConversationManager("negative_user", self.rag, self.llm, self.store)
+        manager.handle_turn("I am weak at Python and need to learn Python")
+        self.assertNotIn("python_basics", self.store.get("negative_user")["skill_ids"])
+
+    def test_natural_language_time_style_and_goal(self):
+        manager = ConversationManager("natural_user", self.rag, self.llm, self.store)
+        manager.handle_turn("I want to become an AI engineer")
+        manager.handle_turn("I learn by building practical projects and can study 7 hours a day")
+        profile = self.store.get("natural_user")
+        self.assertEqual(profile["goal_id"], "goal_ai_engineer")
+        self.assertEqual(profile["learning_style"], "practice")
+        self.assertEqual(profile["weekly_hours"], 49.0)
+
+    def test_negative_learning_statement_is_not_mastery(self):
+        manager = ConversationManager("negative_semantics_user", self.rag, self.llm, self.store)
+        manager.handle_turn("I am new to Docker and need to learn it")
+        profile = self.store.get("negative_semantics_user")
+        self.assertNotIn("docker_basics", profile["skill_ids"])
+        self.assertIn("docker_basics", profile.get("unmastered_skill_ids", []))
 
     def test_conversation_history_accumulates(self):
         manager = ConversationManager("new_user_2", self.rag, self.llm, self.store)

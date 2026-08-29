@@ -26,11 +26,17 @@ class TestAdaptiveRerouting(unittest.TestCase):
         self.reroute = AdaptiveReroutingPipeline()
 
     def test_failing_a_mastered_skill_brings_it_back_into_the_path(self):
-        user_with_mastery = next(
-            (uid for uid, sk in self.ctx.possessed_by_user.items() if sk), None
-        )
-        self.assertIsNotNone(user_with_mastery, "no synthetic user has any mastered skill")
-        failed_skill = sorted(self.ctx.possessed_by_user[user_with_mastery])[0]
+        user_with_mastery = None
+        failed_skill = None
+        for uid, mastered in self.ctx.possessed_by_user.items():
+            goal = self.ctx.user_goal.get(uid)
+            required = set(self.ctx.goal_required_ids.get(goal, set()))
+            eligible = sorted(set(mastered) & required)
+            if eligible:
+                user_with_mastery, failed_skill = uid, eligible[0]
+                break
+        self.assertIsNotNone(user_with_mastery, "no synthetic user has a mastered required skill")
+        self.assertIsNotNone(failed_skill)
 
         before = self.pred.generate_path_for_user(user_with_mastery)
         before_skills = {s.skill_id for s in before.steps}
@@ -47,10 +53,16 @@ class TestAdaptiveRerouting(unittest.TestCase):
         self.assertIn(failed_skill, self.ctx.possessed_by_user[user_with_mastery])
 
     def test_rerouted_path_still_respects_prerequisite_order(self):
-        user_with_mastery = next(
-            (uid for uid, sk in self.ctx.possessed_by_user.items() if sk), None
-        )
-        failed_skill = sorted(self.ctx.possessed_by_user[user_with_mastery])[0]
+        user_with_mastery = None
+        failed_skill = None
+        for uid, mastered in self.ctx.possessed_by_user.items():
+            goal = self.ctx.user_goal.get(uid)
+            eligible = sorted(set(mastered) & set(self.ctx.goal_required_ids.get(goal, set())))
+            if eligible:
+                user_with_mastery, failed_skill = uid, eligible[0]
+                break
+        self.assertIsNotNone(user_with_mastery)
+        self.assertIsNotNone(failed_skill)
         after = self.reroute.reroute(user_with_mastery, failed_skill)
 
         order_index = {s.skill_id: s.sequence_order for s in after.steps}
