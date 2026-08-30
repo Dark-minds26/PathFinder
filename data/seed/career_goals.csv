@@ -1,0 +1,52 @@
+goal_id,title
+goal_data_analyst,Data analyst
+goal_bi_analyst,Business intelligence analyst
+goal_data_scientist,Data scientist
+goal_ml_engineer,ML engineer
+goal_mlops_eng,MLOps engineer
+goal_ml_researcher,Machine learning researcher
+goal_ai_engineer,AI engineer
+goal_cv_eng,Computer vision engineer
+goal_nlp_eng,NLP engineer
+goal_prompt_eng,Prompt engineer
+goal_data_eng,Data engineer
+goal_analytics_eng,Analytics engineer
+goal_data_governance_analyst,Data governance analyst
+goal_data_privacy_eng,Data privacy engineer
+goal_frontend_eng,Frontend engineer
+goal_perf_eng,Web performance engineer
+goal_backend_eng,Backend engineer
+goal_fullstack_eng,Full-stack engineer
+goal_solutions_architect,Solutions architect
+goal_growth_eng,Growth engineer
+goal_android_eng,Android engineer
+goal_ios_eng,iOS engineer
+goal_cloud_eng,Cloud engineer
+goal_cloud_architect,Cloud architect
+goal_devops_eng,DevOps engineer
+goal_sre,Site reliability engineer
+goal_platform_eng,Platform engineer
+goal_infra_eng,Infrastructure engineer
+goal_release_eng,Release engineer
+goal_sysadmin,Systems administrator
+goal_it_support,IT support specialist
+goal_tech_support_eng,Technical support engineer
+goal_network_eng,Network engineer
+goal_security_eng,Security engineer
+goal_pentester,Penetration tester
+goal_dba,Database administrator
+goal_qa_eng,QA engineer
+goal_product_manager,Product manager
+goal_scrum_master,Scrum master
+goal_ux_designer,UX designer
+goal_ui_designer,UI designer
+goal_game_dev,Game developer
+goal_embedded_eng,Embedded systems engineer
+goal_robotics_eng,Robotics engineer
+goal_ar_vr_dev,AR/VR developer
+goal_blockchain_dev,Blockchain developer
+goal_tech_writer,Technical writer
+goal_digital_marketer,Digital marketing analyst
+goal_seo_specialist,SEO specialist
+goal_salesforce_dev,Salesforce developer
+goal_erp_consultant,ERP consultant

@@ -1,0 +1,112 @@
+skill_id,skill_name,category,is_foundational
+python_basics,Python basics,data,1
+git_basics,Git basics,shared,1
+sql_basics,SQL basics,data,1
+html_css_basics,HTML/CSS basics,frontend,1
+docker_basics,Docker basics,backend,1
+linux_basics,Linux basics,shared,1
+networking_basics,Networking basics,shared,1
+agile_basics,Agile basics,shared,1
+excel_basics,Excel basics,data,1
+r_basics,R basics,data,1
+figma_basics,Figma basics,design,1
+manual_testing,Manual testing,qa,1
+security_fundamentals,Security fundamentals,security,1
+product_discovery,Product discovery,product,1
+stakeholder_management,Stakeholder management,product,1
+ux_research,UX research,design,1
+technical_writing,Technical writing,writing,1
+it_support_fundamentals,IT support fundamentals,sysadmin,1
+salesforce_basics,Salesforce basics,crm,1
+erp_fundamentals,ERP fundamentals,erp,1
+digital_marketing_fundamentals,Digital marketing fundamentals,marketing,1
+jira_basics,Jira,product,1
+miro_basics,Miro,design,1
+python_advanced,Python advanced,data,0
+pandas_numpy,Pandas & NumPy,data,0
+statistics,Statistics,data,0
+statistical_modeling_r,Statistical modeling (R),data,0
+data_wrangling,Data wrangling,data,0
+power_bi,Power BI,data,0
+tableau,Tableau,data,0
+machine_learning,Machine learning,data,0
+deep_learning,Deep learning,data,0
+mlops_basics,MLOps basics,data,0
+model_monitoring,Model monitoring & drift detection,ai,0
+pytorch,PyTorch,ai,0
+llm_applications,LLM applications,ai,0
+vector_databases,Vector databases,ai,0
+rag_systems,RAG systems,ai,0
+model_serving,Model serving,ai,0
+prompt_engineering,Prompt engineering,ai,0
+data_pipelines,Data pipelines,data_eng,0
+spark_basics,Apache Spark,data_eng,0
+data_warehousing,Data warehousing,data_eng,0
+etl_orchestration,ETL orchestration (Airflow),data_eng,0
+dbt_basics,dbt basics,data_eng,0
+data_governance,Data governance,data,0
+javascript_basics,JavaScript basics,frontend,0
+typescript_basics,TypeScript basics,frontend,0
+react_basics,React basics,frontend,0
+state_management,State management,frontend,0
+frontend_testing,Frontend testing,frontend,0
+web_performance,Web performance,frontend,0
+rest_apis,REST APIs,backend,0
+databases_basics,Databases basics,backend,0
+backend_frameworks,Backend frameworks,backend,0
+system_design,System design,backend,0
+kubernetes_basics,Kubernetes basics,backend,0
+cloud_aws_basics,Cloud (AWS) basics,backend,0
+gcp_basics,Google Cloud basics,cloud,0
+azure_basics,Azure basics,cloud,0
+ci_cd_basics,CI/CD basics,devops,0
+jenkins_basics,Jenkins,devops,0
+ansible_basics,Ansible,devops,0
+terraform_basics,Terraform basics,cloud,0
+infrastructure_as_code,Infrastructure as code,devops,0
+monitoring_observability,Monitoring & observability,devops,0
+prometheus_grafana,Prometheus & Grafana,devops,0
+cloud_architecture,Cloud architecture,cloud,0
+multi_cloud,Multi-cloud strategy,cloud,0
+release_engineering,Release engineering,devops,0
+systems_administration,Systems administration,sysadmin,0
+network_administration,Network administration,network,0
+network_security,Network security,security,0
+application_security,Application security,security,0
+identity_access_management,Identity & access management,security,0
+penetration_testing,Penetration testing,security,0
+burp_suite,Burp Suite,security,0
+siem_tools,SIEM tools (Splunk),security,0
+database_administration,Database administration,database,0
+database_tuning,Database performance tuning,database,0
+kotlin_basics,Kotlin basics,mobile,0
+android_development,Android development,mobile,0
+swift_basics,Swift basics,mobile,0
+ios_development,iOS development,mobile,0
+mobile_ui_patterns,Mobile UI patterns,mobile,0
+test_automation,Test automation,qa,0
+product_roadmapping,Product roadmapping,product,0
+scrum_facilitation,Scrum facilitation,product,0
+ui_design_principles,UI design principles,design,0
+prototyping,Prototyping,design,0
+design_systems,Design systems,design,0
+sketch_basics,Sketch,design,0
+game_engine_basics,Game engine basics (Unity),game,0
+gameplay_programming,Gameplay programming,game,0
+graphics_programming,Graphics programming,game,0
+embedded_c_basics,Embedded C basics,embedded,0
+rtos_basics,RTOS basics,embedded,0
+hardware_interfacing,Hardware interfacing,embedded,0
+robotics_fundamentals,Robotics fundamentals,robotics,0
+ros_basics,ROS basics,robotics,0
+ar_vr_basics,AR/VR basics,xr,0
+solidity_basics,Solidity basics,blockchain,0
+smart_contracts,Smart contracts,blockchain,0
+blockchain_architecture,Blockchain architecture,blockchain,0
+api_documentation,API documentation,writing,0
+seo_fundamentals,SEO fundamentals,marketing,0
+google_analytics,Google Analytics,marketing,0
+google_ads,Google Ads,marketing,0
+ab_testing,A/B testing,marketing,0
+salesforce_apex,Salesforce Apex,crm,0
+sap_basics,SAP basics,erp,0

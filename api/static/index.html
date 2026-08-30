@@ -1429,12 +1429,37 @@
 
       function inferType(step) { const t = (step.course_title || '').toLowerCase(); if (/project|build|lab/.test(t)) return 'Project / practice'; return 'Learning resource'; }
       function renderTrail(path, state, message) {
-        latestPath = Array.isArray(path) ? path : [];
-        if (state === 'ok' && latestPath.length) {
-          savePath();
+        // BUG FIX: If progress is 100%, force the path to be empty to prevent ghost trails.
+        if (currentProfile.progress_pct >= 100) {
+            path = [];
+            state = 'mastered';
         }
+
+        latestPath = Array.isArray(path) ? path : []; 
         $('trail-status').textContent = state === 'ok' ? `${latestPath.length} adaptive step${latestPath.length === 1 ? '' : 's'} · ranked from current learner state` : `Status · ${state || 'none'}`;
-        if (state !== 'ok' || !latestPath.length) { renderEmpty(state, message); return; }
+        
+        if (state !== 'ok' || !latestPath.length) { 
+            renderEmpty(state, message); 
+            // Celebration Check for Empty State
+            const nextIcon = document.querySelector('.next-main .target-icon');
+            if (currentProfile.progress_pct >= 100 || state === 'mastered') {
+                $('next-action-title').textContent = '🎉 Career Goal Mastered!';
+                $('next-action-text').innerHTML = '<strong>Massive Congratulations!</strong> You have validated every required skill for this role. You are officially ready for the industry!';
+                $('next-action-status').textContent = 'Achieved';
+                if (nextIcon) {
+                    nextIcon.textContent = '🏆';
+                    nextIcon.style.background = 'linear-gradient(135deg, #FFD700, #F39C12)';
+                    nextIcon.style.border = 'none';
+                }
+            } else {
+                $('next-action-title').textContent = 'Keep learning';
+                $('next-action-text').textContent = 'Continue building evidence for your goal.';
+                $('next-action-status').textContent = 'Complete';
+                if (nextIcon) { nextIcon.textContent = '🎯'; nextIcon.style.background = ''; nextIcon.style.border = ''; }
+            }
+            return; 
+        }
+
         trailBody.innerHTML = '';
         const banner = document.createElement('div'); banner.className = 'trail-banner'; banner.textContent = 'Adaptive journey: prerequisite-aware, ranked by career goal, skill gaps, learning style, study time, interests and learner feedback.'; trailBody.appendChild(banner);
         const list = document.createElement('div'); list.className = 'trail-list';
@@ -1457,9 +1482,17 @@
           card.appendChild(actions); row.appendChild(card); list.appendChild(row);
         });
         trailBody.appendChild(list);
-        const first = latestPath[0]; $('next-action-title').textContent = first ? titleize(first.skill_id) : 'Keep learning'; $('next-action-text').textContent = first ? `Start with ${first.course_title}. Finish it, then validate the skill with the checkpoint.` : 'Continue building evidence for your goal.'; $('next-action-status').textContent = first ? 'Ready now' : 'Complete';
+        
+        // Normal Learning State
+        const first = latestPath[0]; 
+        const nextIcon = document.querySelector('.next-main .target-icon');
+        if (first) {
+            $('next-action-title').textContent = titleize(first.skill_id);
+            $('next-action-text').textContent = `Start with ${first.course_title}. Finish it, then validate the skill with the checkpoint.`; 
+            $('next-action-status').textContent = 'Ready now';
+            if (nextIcon) { nextIcon.textContent = '🎯'; nextIcon.style.background = ''; nextIcon.style.border = ''; }
+        }
       }
-
       async function refreshHealth() { try { const r = await fetch('/health'); const d = await r.json(); const ok = d.status === 'ok'; $('status-dot').className = 'status-dot ' + (ok ? 'ok' : 'degraded'); $('status-text').textContent = ok ? `AI + ML · ${String(d.llm_backend || 'LLM ready').replace('Client', '')}` : 'Backend degraded'; } catch (e) { $('status-dot').className = 'status-dot degraded'; $('status-text').textContent = 'Backend unreachable'; } }
 
       async function hydrate() {
@@ -1491,10 +1524,62 @@
       }
       async function refreshDashboard() {
         try {
-          const r = await fetch(`/learning/state/${encodeURIComponent(USER_ID)}`); if (!r.ok) return; const d = await r.json(); currentGoalId = d.goal_id || currentGoalId; currentProfile.progress_pct = d.progress_pct; updateProgress(d.progress_pct); setProfile(Object.assign({}, currentProfile, { goal_id: currentGoalId }));
-          const skillsBox = $('skill-state'); skillsBox.innerHTML = ''; const skills = d.skills || []; $('skill-summary').textContent = skills.length ? `${skills.filter(x => x.status === 'mastered').length}/${skills.length} mastered` : 'No evidence yet'; if (!skills.length) { skillsBox.innerHTML = '<div style="color:var(--muted);font-size:12px">Your prerequisite map will appear here.</div>'; } else { skills.forEach(x => { const row = document.createElement('div'); row.className = 'skill-row'; const n = document.createElement('div'); n.className = 'skill-name'; n.textContent = x.name || titleize(x.skill_id); const track = document.createElement('div'); track.className = 'skill-track'; const fill = document.createElement('span'); fill.style.width = Math.max(0, Math.min(100, x.mastery || 0)) + '%'; track.appendChild(fill); const stat = document.createElement('small'); stat.textContent = `${Number(x.mastery || 0).toFixed(0)}% · ${x.status}`; row.append(n, track, stat); skillsBox.appendChild(row); }); }
-          const mb = $('milestone-state'); mb.innerHTML = ''; (d.milestones || []).forEach(m => { const mEl = document.createElement('div'); mEl.className = 'mile'; const top = document.createElement('div'); top.className = 'top'; const st = document.createElement('strong'); st.textContent = m.title; const chip = document.createElement('span'); chip.className = 'status ' + (m.complete ? '' : 'degraded'); chip.textContent = m.complete ? 'Complete' : 'In progress'; top.append(st, chip); const p = document.createElement('p'); p.textContent = `${(m.skills || []).length} skill${(m.skills || []).length === 1 ? '' : 's'} in this milestone`; mEl.append(top, p); mb.appendChild(mEl); });
-          if (d.next_best_action) { const n = d.next_best_action; $('next-action-title').textContent = titleize(n.skill_id); $('next-action-text').textContent = n.why || `Start ${n.course_title || 'the next recommended step'}.`; $('next-action-status').textContent = 'Ready now'; }
+          const r = await fetch(`/learning/state/${encodeURIComponent(USER_ID)}`); 
+          if (!r.ok) return; 
+          const d = await r.json(); 
+          currentGoalId = d.goal_id || currentGoalId; 
+          currentProfile.progress_pct = d.progress_pct; 
+          updateProgress(d.progress_pct); 
+          setProfile(Object.assign({}, currentProfile, { goal_id: currentGoalId }));
+          
+          const skillsBox = $('skill-state'); 
+          skillsBox.innerHTML = ''; 
+          const skills = d.skills || []; 
+          $('skill-summary').textContent = skills.length ? `${skills.filter(x => x.status === 'mastered').length}/${skills.length} mastered` : 'No evidence yet'; 
+          
+          if (!skills.length) { 
+            skillsBox.innerHTML = '<div style="color:var(--muted);font-size:12px">Your prerequisite map will appear here.</div>'; 
+          } else { 
+            skills.forEach(x => { 
+              const row = document.createElement('div'); row.className = 'skill-row'; 
+              const n = document.createElement('div'); n.className = 'skill-name'; n.textContent = x.name || titleize(x.skill_id); 
+              const track = document.createElement('div'); track.className = 'skill-track'; 
+              const fill = document.createElement('span'); fill.style.width = Math.max(0, Math.min(100, x.mastery || 0)) + '%'; 
+              track.appendChild(fill); 
+              const stat = document.createElement('small'); stat.textContent = `${Number(x.mastery || 0).toFixed(0)}% · ${x.status}`; 
+              row.append(n, track, stat); skillsBox.appendChild(row); 
+            }); 
+          }
+          
+          const mb = $('milestone-state'); mb.innerHTML = ''; 
+          (d.milestones || []).forEach(m => { 
+            const mEl = document.createElement('div'); mEl.className = 'mile'; 
+            const top = document.createElement('div'); top.className = 'top'; 
+            const st = document.createElement('strong'); st.textContent = m.title; 
+            const chip = document.createElement('span'); chip.className = 'status ' + (m.complete ? '' : 'degraded'); chip.textContent = m.complete ? 'Complete' : 'In progress'; 
+            top.append(st, chip); 
+            const p = document.createElement('p'); p.textContent = `${(m.skills || []).length} skill${(m.skills || []).length === 1 ? '' : 's'} in this milestone`; 
+            mEl.append(top, p); mb.appendChild(mEl); 
+          });
+          
+          // --- DASHBOARD CELEBRATION CHECK ---
+          if (d.progress_pct >= 100) {
+              const nextIcon = document.querySelector('.next-main .target-icon');
+              $('next-action-title').textContent = '🎉 Career Goal Mastered!';
+              $('next-action-text').innerHTML = '<strong>Massive Congratulations!</strong> You have validated every required skill for this role. You are officially ready for the industry!';
+              $('next-action-status').textContent = 'Achieved';
+              if (nextIcon) {
+                  nextIcon.textContent = '🏆';
+                  nextIcon.style.background = 'linear-gradient(135deg, #FFD700, #F39C12)';
+                  nextIcon.style.border = 'none';
+              }
+              
+              // ABSOLUTE WIPE: Delete the Javascript memory array so ghost courses disappear
+              latestPath = [];
+              renderEmpty('mastered', 'You have validated every required skill for this role.');
+              const statusEl = document.getElementById('trail-status');
+              if(statusEl) statusEl.textContent = 'Status · mastered';
+          }
         } catch (e) { }
       }
       // In api/static/index.html

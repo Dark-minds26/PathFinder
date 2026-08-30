@@ -33,15 +33,31 @@ class AdaptiveReroutingPipeline:
         mastery: dict | None = None,
         review_skills: set | None = None,
     ) -> PathGeneratorArtifact:
+        
+        # 1. Force the generator to load its context so we can read it
+        self._generator._ensure_loaded()
+
+        # 2. If possessed_skills isn't explicitly provided, fetch it from the context
+        if possessed_skills is None:
+            possessed_skills = set(self._generator._ctx.possessed_by_user.get(user_id, []))
+        else:
+            possessed_skills = set(possessed_skills)
+
+        # 3. Treat the failed skill as unmastered for this generation
+        possessed_skills.discard(failed_skill_id)
+
+        # 4. Call generate_path
         return self._generator.generate_path(
             user_id,
-            exclude_mastered_skills={failed_skill_id},
+            exclude_mastered_skills=None, # Leave this None!
             goal_id=goal_id,
-            possessed_skills=possessed_skills,
+            possessed_skills=possessed_skills, # Pass the modified set
             experience_level=experience_level,
             learning_style=learning_style,
             weekly_hours=weekly_hours,
             interests=interests,
             roadmap_preferences=roadmap_preferences,
-            completed_course_ids=completed_course_ids, mastery=mastery, review_skills=review_skills or {failed_skill_id},
+            completed_course_ids=completed_course_ids, 
+            mastery=mastery, 
+            review_skills=review_skills or {failed_skill_id},
         )

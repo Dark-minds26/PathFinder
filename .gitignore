@@ -8,5 +8,3 @@ artifacts/
 *.egg-info/
 .pytest_cache/
 notebooks/.ipynb_checkpoints/
-data/
-seed/
