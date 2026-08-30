@@ -113,6 +113,48 @@ class ProfileStore:
                 p.setdefault("learning_history",[]).append(item); data[user_id]=p; self._write_all(data); return p
         except Exception as e: raise RecommenderException(e,sys) from e
 
+    def get_chat_history(self, user_id: str) -> list:
+        profile = self.get(user_id)
+        return profile.get("chat_history", [])
+
+
+    def save_chat_history(self, user_id: str, history: list) -> dict:
+        try:
+            with self._lock:
+                data = self._read_all()
+                profile = data.get(user_id, {"skill_ids": []})
+
+                profile["chat_history"] = history
+
+                data[user_id] = profile
+                self._write_all(data)
+
+                return profile
+
+        except Exception as e:
+            raise RecommenderException(e, sys) from e
+
+
+    def get_generated_path(self, user_id: str):
+        profile = self.get(user_id)
+        return profile.get("generated_path")
+
+    def save_generated_path(self, user_id: str, path) -> dict:
+        try:
+            with self._lock:
+                data = self._read_all()
+                profile = data.get(user_id, {"skill_ids": []})
+
+                profile["generated_path"] = path
+
+                data[user_id] = profile
+                self._write_all(data)
+
+                return profile
+
+        except Exception as e:
+            raise RecommenderException(e, sys) from e
+    
     def completeness(self, user_id: str) -> float:
         p=self.get(user_id); checks=[bool(p.get("goal_id")), bool(p.get("experience_level")), bool(p.get("learning_style")), p.get("weekly_hours") is not None, bool(p.get("skill_ids") or p.get("unmastered_skill_ids"))]
         return round(sum(checks)/5,4)

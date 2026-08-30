@@ -1,295 +1,1592 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Pathfinder — an AI-powered adaptive learning path recommender.">
-<title>Pathfinder — adaptive learning coach</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#f4f6f3; --surface:#ffffff; --surface-2:#edf3ee; --surface-3:#f8faf8;
-  --text:#17211b; --muted:#647067; --line:#dbe4dd; --green:#25704b; --green-dark:#1a5538;
-  --green-soft:#dfeee5; --mint:#eef7f1; --gold:#d99b2f; --gold-soft:#fff2d8;
-  --red:#b24b35; --red-soft:#fae7e1; --blue:#2d5f9a; --blue-soft:#e7f0fb;
-  --shadow:0 16px 50px rgba(23,33,27,.08); --shadow-sm:0 4px 18px rgba(23,33,27,.06);
-  --radius:18px; --radius-sm:12px;
-}
-*{box-sizing:border-box} html{scroll-behavior:smooth}
-body{margin:0;background:radial-gradient(circle at 10% -10%,#fafffb 0,transparent 35%),var(--bg);color:var(--text);font:15px/1.55 "DM Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-button,input{font:inherit} button{cursor:pointer} button:disabled{cursor:not-allowed;opacity:.55}
-button:focus-visible,input:focus-visible{outline:3px solid rgba(37,112,75,.18);outline-offset:2px}
-.mono{font-family:"IBM Plex Mono",monospace}
-.container{width:min(1240px,calc(100% - 40px));margin:0 auto}
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 0 18px;border-bottom:1px solid var(--line)}
-.brand{display:flex;align-items:center;gap:12px}.brand-mark{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:var(--green-soft);font-size:23px;box-shadow:inset 0 0 0 1px #cce0d1}.brand h1{font:700 28px/1 "DM Serif Display",serif;margin:0;letter-spacing:-.02em}.brand p{margin:4px 0 0;color:var(--muted);font-size:13px}
-.status{display:flex;align-items:center;gap:8px;padding:8px 13px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.82);color:var(--muted);font-size:12px}.status-dot{width:8px;height:8px;border-radius:50%;background:#b7c0ba}.status-dot.ok{background:var(--green)}.status-dot.degraded{background:var(--red)}
-.hero{padding:24px 0 18px}.hero-inner{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,.8fr);gap:18px}.hero-copy{padding:24px 0}.eyebrow{font:500 11px/1 "IBM Plex Mono",monospace;color:var(--green);letter-spacing:.14em;text-transform:uppercase}.hero h2{font:600 clamp(32px,4vw,50px)/1.06 "DM Serif Display",serif;margin:10px 0 14px;max-width:760px;letter-spacing:-.02em}.hero h2 em{font-style:normal;color:var(--green)}.hero p{margin:0;color:var(--muted);max-width:700px;font-size:16px}.hero-card{background:linear-gradient(135deg,#1f6846,#2f825a);color:#fff;border-radius:20px;padding:20px;box-shadow:var(--shadow);display:flex;flex-direction:column;justify-content:space-between;min-height:180px}.hero-card .mini-title{font-size:12px;text-transform:uppercase;letter-spacing:.1em;opacity:.76}.hero-card strong{font:600 28px/1.1 "DM Serif Display",serif}.hero-card p{color:rgba(255,255,255,.83);font-size:13px;margin:0}.hero-card .stats{display:flex;gap:9px;flex-wrap:wrap}.hero-stat{padding:7px 10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);border-radius:10px;font-size:11px}
-.app-grid{display:grid;grid-template-columns:minmax(330px,.88fr) minmax(0,1.32fr);gap:20px;padding:8px 0 42px;align-items:start}.panel{background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden}.panel-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 18px;border-bottom:1px solid var(--line)}.panel-header h3{font:600 20px "DM Serif Display",serif;margin:0}.panel-header small{color:var(--muted);font-size:11px}
-.chat-panel{position:sticky;top:16px}.chat-body{padding:16px}.chat-hint{padding:16px;border-radius:14px;background:linear-gradient(180deg,#f6faf7,#eef6f0);border:1px solid #deebe1;margin-bottom:12px}.chat-hint strong{display:block;margin-bottom:4px}.chat-hint p{margin:0;color:var(--muted);font-size:13px}.quick-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}.quick-actions button{background:#fff;color:var(--green);border:1px solid #cddbd0;border-radius:999px;padding:7px 10px;font-size:12px}.quick-actions button:hover{background:var(--green-soft)}
-#chat-log{height:440px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:4px 3px 10px;scrollbar-width:thin}.bubble{max-width:86%;padding:11px 13px;border-radius:15px;animation:rise .22s ease-out;font-size:14px;white-space:pre-wrap}.bubble.user{align-self:flex-end;background:var(--green);color:white;border-bottom-right-radius:4px}.bubble.bot{align-self:flex-start;background:var(--surface-2);border-bottom-left-radius:4px}.bubble.system{align-self:center;background:transparent;color:var(--muted);font-size:12px;text-align:center}.bubble.error{background:var(--red-soft);color:var(--red)}
-@keyframes rise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
-.completeness{padding:0 17px 14px}.progress-line{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px;font-size:11px;color:var(--muted)}.bar{height:8px;background:#e2e9e3;border-radius:999px;overflow:hidden}.bar > span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),#e3ad50);border-radius:inherit;transition:width .45s ease}.chat-form{display:flex;gap:8px;padding:13px;border-top:1px solid var(--line)}.chat-form input{min-width:0;flex:1;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--text)}.primary{border:0;background:var(--green);color:white;padding:11px 16px;border-radius:12px;font-weight:600}.primary:hover{background:var(--green-dark)}
-.dashboard{padding:16px}.goal-hero{display:grid;grid-template-columns:1.2fr .8fr;gap:12px}.metric{padding:15px;border:1px solid var(--line);background:#fff;border-radius:14px}.metric .label{font:500 10px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}.metric .value{font-size:23px;font-weight:700;margin-top:5px}.metric .sub{margin-top:5px;color:var(--muted);font-size:12px}
-.section{margin-top:12px;border:1px solid var(--line);background:#fff;border-radius:14px;padding:14px}.section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.section-title h4{margin:0;font-size:13px}.section-title span{font-size:11px;color:var(--muted)}
-.profile-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.profile-item{padding:10px;border-radius:10px;background:var(--surface-3);border:1px solid #e7ece8}.profile-item span{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}.profile-item strong{display:block;margin-top:3px;font-size:12px;text-transform:capitalize}.chips{display:flex;gap:7px;flex-wrap:wrap}.chip{padding:6px 9px;border-radius:999px;background:var(--surface-2);border:1px solid #d8e4db;color:#4f5d53;font-size:11px}.chip.green{background:#e4f2e8;color:var(--green);border-color:#cce1d2}.chip.red{background:var(--red-soft);color:var(--red);border-color:#efcdc3}.chip.gold{background:var(--gold-soft);color:#79581d;border-color:#eedcae}
-.next-card{background:linear-gradient(135deg,#fff8e9,#fff0d0);border-color:#eedfbf}.next-main{display:flex;gap:11px;align-items:flex-start}.target-icon{width:33px;height:33px;display:grid;place-items:center;background:#fff;border-radius:10px;box-shadow:0 1px 0 #ecd8ab;flex:none}.next-main strong{display:block;font-size:14px}.next-main p{margin:3px 0 0;color:#695529;font-size:12px}
-.skills{display:flex;flex-direction:column;gap:9px}.skill-row{display:grid;grid-template-columns:minmax(120px,.7fr) minmax(120px,1.5fr) auto;gap:10px;align-items:center}.skill-name{font-size:12px}.skill-track{height:8px;border-radius:999px;background:#e7ece8;overflow:hidden}.skill-track span{display:block;height:100%;background:linear-gradient(90deg,#65a47e,var(--green));border-radius:inherit}.skill-row small{font:500 10px "IBM Plex Mono",monospace;color:var(--muted)}
-.milestones{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.mile{padding:11px;border:1px solid var(--line);border-radius:11px;background:var(--surface-3)}.mile .top{display:flex;align-items:center;justify-content:space-between;gap:8px}.mile strong{font-size:12px}.mile .status{padding:4px 7px;font-size:10px}.mile p{margin:6px 0 0;color:var(--muted);font-size:11px}
-.trail-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.trail-head .left{display:flex;align-items:center;gap:9px}.live-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border-radius:999px;background:var(--mint);border:1px solid #d6eadb;color:var(--green);font-size:11px}.live-badge i{width:6px;height:6px;border-radius:50%;background:var(--green)}.secondary{border:1px solid var(--green);background:#fff;color:var(--green);padding:8px 12px;border-radius:10px;font-size:12px;font-weight:600}.secondary:hover{background:var(--green-soft)}
-#trail-body{padding:0}.trail-banner{margin:16px;padding:11px 12px;border-radius:11px;background:var(--surface-2);border:1px solid #dceae0;color:#466053;font-size:12px}.trail-list{padding:0 16px 18px}.step{display:grid;grid-template-columns:36px minmax(0,1fr);gap:11px;position:relative}.step::before{content:"";position:absolute;left:17px;top:34px;bottom:-15px;width:2px;background:#dbe5de}.step:last-child::before{display:none}.step-node{width:34px;height:34px;border-radius:50%;border:2px solid var(--green);background:#fff;color:var(--green);display:grid;place-items:center;z-index:1;font:500 11px "IBM Plex Mono",monospace}.step.current .step-node{background:var(--gold);border-color:var(--gold);color:#fff}.step.review .step-node{background:var(--red-soft);border-color:#efc1b5;color:var(--red)}.step-card{padding:14px;border:1px solid var(--line);border-radius:14px;background:#fff;margin-bottom:16px;box-shadow:0 2px 8px rgba(23,33,27,.03)}.step-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.step-title{margin:0;font:600 19px/1.1 "DM Serif Display",serif}.step-resource{margin:3px 0 0;color:var(--muted);font-size:13px}.step-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.tag{padding:5px 8px;border:1px solid var(--line);border-radius:999px;background:var(--surface-3);color:var(--muted);font-size:10px}.tag.current{background:var(--gold-soft);color:#7d5c1c;border-color:#efdbac}.tag.review{background:var(--red-soft);color:var(--red);border-color:#efcdc4}.step-reason{margin-top:10px;padding:10px 11px;border-radius:10px;background:#fafcfb;border:1px dashed #dce7df;color:#536158;font-size:12px}.step-reason strong{color:var(--text)}.step-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}.step-actions button{padding:8px 10px;border-radius:9px;font-size:11px;border:1px solid var(--line);background:#fff;color:var(--text)}.step-actions button:hover{background:var(--surface-3)}.step-actions .action-primary{background:var(--green);border-color:var(--green);color:#fff}.step-actions .action-primary:hover{background:var(--green-dark)}.step-actions .action-danger{color:var(--red);border-color:#e9c9c0}.why-panel{display:none;margin-top:9px;padding:11px;border-radius:10px;background:var(--blue-soft);border:1px solid #cfe0f4;color:#355579;font-size:12px}.why-panel.open{display:block}.empty-state{margin:16px;padding:34px 18px;text-align:center;border:1px dashed #ccd9cf;border-radius:14px;background:var(--surface-3)}.empty-icon{font-size:30px;margin-bottom:7px}.empty-state h4{margin:0;font-size:16px}.empty-state p{margin:5px auto 0;color:var(--muted);max-width:480px;font-size:12px}.empty-state button{margin-top:12px}
-.toast{position:fixed;right:20px;bottom:20px;max-width:380px;background:#18241d;color:#fff;padding:12px 14px;border-radius:12px;box-shadow:var(--shadow);font-size:12px;opacity:0;transform:translateY(8px);pointer-events:none;transition:.2s;z-index:50}.toast.show{opacity:1;transform:none}.toast.error{background:#7e3325}
-.modal-backdrop{position:fixed;inset:0;background:rgba(9,18,13,.42);display:none;align-items:center;justify-content:center;padding:18px;z-index:40;backdrop-filter:blur(5px)}.modal-backdrop.open{display:flex}.modal{width:min(680px,100%);max-height:min(88vh,760px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 25px 100px rgba(0,0,0,.18)}.modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px;border-bottom:1px solid var(--line)}.modal-header h4{margin:0;font:600 23px "DM Serif Display",serif}.modal-header p{margin:4px 0 0;color:var(--muted);font-size:12px}.close{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:#fff}.modal-body{padding:18px}.question{padding:13px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px}.question p{margin:0 0 9px;font-weight:600;font-size:13px}.option{display:flex;gap:8px;align-items:flex-start;padding:8px;border-radius:8px}.option:hover{background:var(--surface-3)}.option input{margin-top:3px}.modal-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;border-top:1px solid var(--line)}.result{padding:14px;border-radius:12px;margin-bottom:12px}.result.pass{background:#e8f4eb;border:1px solid #cde4d1;color:#285e3f}.result.review{background:var(--gold-soft);border:1px solid #ecd8a9;color:#76541a}.result.fail{background:var(--red-soft);border:1px solid #ecc9bf;color:var(--red)}
-.footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0 36px;color:var(--muted);font-size:11px}.footer button{border:0;background:none;color:var(--green);padding:0;font-size:11px}
-@media(max-width:980px){.hero-inner,.app-grid{grid-template-columns:1fr}.chat-panel{position:static}.goal-hero{grid-template-columns:1fr}.profile-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:620px){.container{width:min(100% - 24px,1240px)}.topbar{align-items:flex-start}.status{font-size:10px}.hero h2{font-size:36px}.profile-grid{grid-template-columns:1fr 1fr}.milestones{grid-template-columns:1fr}.step-title{font-size:17px}.chat-form{flex-direction:column}.primary{width:100%}}
-@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Pathfinder — an AI-powered adaptive learning path recommender.">
+  <title>Pathfinder — adaptive learning coach</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4f6f3;
+      --surface: #ffffff;
+      --surface-2: #edf3ee;
+      --surface-3: #f8faf8;
+      --text: #17211b;
+      --muted: #647067;
+      --line: #dbe4dd;
+      --green: #25704b;
+      --green-dark: #1a5538;
+      --green-soft: #dfeee5;
+      --mint: #eef7f1;
+      --gold: #d99b2f;
+      --gold-soft: #fff2d8;
+      --red: #b24b35;
+      --red-soft: #fae7e1;
+      --blue: #2d5f9a;
+      --blue-soft: #e7f0fb;
+      --shadow: 0 16px 50px rgba(23, 33, 27, .08);
+      --shadow-sm: 0 4px 18px rgba(23, 33, 27, .06);
+      --radius: 18px;
+      --radius-sm: 12px;
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html {
+      scroll-behavior: smooth
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 10% -10%, #fafffb 0, transparent 35%), var(--bg);
+      color: var(--text);
+      font: 15px/1.55 "DM Sans", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased
+    }
+
+    button,
+    input {
+      font: inherit
+    }
+
+    button {
+      cursor: pointer
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .55
+    }
+
+    button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid rgba(37, 112, 75, .18);
+      outline-offset: 2px
+    }
+
+    .mono {
+      font-family: "IBM Plex Mono", monospace
+    }
+
+    .container {
+      width: min(1240px, calc(100% - 40px));
+      margin: 0 auto
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px 0 18px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      background: var(--green-soft);
+      font-size: 23px;
+      box-shadow: inset 0 0 0 1px #cce0d1
+    }
+
+    .brand h1 {
+      font: 700 28px/1 "DM Serif Display", serif;
+      margin: 0;
+      letter-spacing: -.02em
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .82);
+      color: var(--muted);
+      font-size: 12px
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #b7c0ba
+    }
+
+    .status-dot.ok {
+      background: var(--green)
+    }
+
+    .status-dot.degraded {
+      background: var(--red)
+    }
+
+    .hero {
+      padding: 24px 0 18px
+    }
+
+    .hero-inner {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(300px, .8fr);
+      gap: 18px
+    }
+
+    .hero-copy {
+      padding: 24px 0
+    }
+
+    .eyebrow {
+      font: 500 11px/1 "IBM Plex Mono", monospace;
+      color: var(--green);
+      letter-spacing: .14em;
+      text-transform: uppercase
+    }
+
+    .hero h2 {
+      font: 600 clamp(32px, 4vw, 50px)/1.06 "DM Serif Display", serif;
+      margin: 10px 0 14px;
+      max-width: 760px;
+      letter-spacing: -.02em
+    }
+
+    .hero h2 em {
+      font-style: normal;
+      color: var(--green)
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 700px;
+      font-size: 16px
+    }
+
+    .hero-card {
+      background: linear-gradient(135deg, #1f6846, #2f825a);
+      color: #fff;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 180px
+    }
+
+    .hero-card .mini-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      opacity: .76
+    }
+
+    .hero-card strong {
+      font: 600 28px/1.1 "DM Serif Display", serif
+    }
+
+    .hero-card p {
+      color: rgba(255, 255, 255, .83);
+      font-size: 13px;
+      margin: 0
+    }
+
+    .hero-card .stats {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap
+    }
+
+    .hero-stat {
+      padding: 7px 10px;
+      border: 1px solid rgba(255, 255, 255, .18);
+      background: rgba(255, 255, 255, .08);
+      border-radius: 10px;
+      font-size: 11px
+    }
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: minmax(330px, .88fr) minmax(0, 1.32fr);
+      gap: 20px;
+      padding: 8px 0 42px;
+      align-items: start
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, .9);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 17px 18px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .panel-header h3 {
+      font: 600 20px "DM Serif Display", serif;
+      margin: 0
+    }
+
+    .panel-header small {
+      color: var(--muted);
+      font-size: 11px
+    }
+
+    .chat-panel {
+      position: sticky;
+      top: 16px
+    }
+
+    .chat-body {
+      padding: 16px
+    }
+
+    .chat-hint {
+      padding: 16px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #f6faf7, #eef6f0);
+      border: 1px solid #deebe1;
+      margin-bottom: 12px
+    }
+
+    .chat-hint strong {
+      display: block;
+      margin-bottom: 4px
+    }
+
+    .chat-hint p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px
+    }
+
+    .quick-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 11px
+    }
+
+    .quick-actions button {
+      background: #fff;
+      color: var(--green);
+      border: 1px solid #cddbd0;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px
+    }
+
+    .quick-actions button:hover {
+      background: var(--green-soft)
+    }
+
+    #chat-log {
+      height: 440px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 4px 3px 10px;
+      scrollbar-width: thin
+    }
+
+    .bubble {
+      max-width: 86%;
+      padding: 11px 13px;
+      border-radius: 15px;
+      animation: rise .22s ease-out;
+      font-size: 14px;
+      white-space: pre-wrap
+    }
+
+    .bubble.user {
+      align-self: flex-end;
+      background: var(--green);
+      color: white;
+      border-bottom-right-radius: 4px
+    }
+
+    .bubble.bot {
+      align-self: flex-start;
+      background: var(--surface-2);
+      border-bottom-left-radius: 4px
+    }
+
+    .bubble.system {
+      align-self: center;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center
+    }
+
+    .bubble.error {
+      background: var(--red-soft);
+      color: var(--red)
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(5px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    .completeness {
+      padding: 0 17px 14px
+    }
+
+    .progress-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 7px;
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .bar {
+      height: 8px;
+      background: #e2e9e3;
+      border-radius: 999px;
+      overflow: hidden
+    }
+
+    .bar>span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--gold), #e3ad50);
+      border-radius: inherit;
+      transition: width .45s ease
+    }
+
+    .chat-form {
+      display: flex;
+      gap: 8px;
+      padding: 13px;
+      border-top: 1px solid var(--line)
+    }
+
+    .chat-form input {
+      min-width: 0;
+      flex: 1;
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--text)
+    }
+
+    .primary {
+      border: 0;
+      background: var(--green);
+      color: white;
+      padding: 11px 16px;
+      border-radius: 12px;
+      font-weight: 600
+    }
+
+    .primary:hover {
+      background: var(--green-dark)
+    }
+
+    .dashboard {
+      padding: 16px
+    }
+
+    .goal-hero {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 12px
+    }
+
+    .metric {
+      padding: 15px;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 14px
+    }
+
+    .metric .label {
+      font: 500 10px "IBM Plex Mono", monospace;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted)
+    }
+
+    .metric .value {
+      font-size: 23px;
+      font-weight: 700;
+      margin-top: 5px
+    }
+
+    .metric .sub {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px
+    }
+
+    .section {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px
+    }
+
+    .section-title h4 {
+      margin: 0;
+      font-size: 13px
+    }
+
+    .section-title span {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px
+    }
+
+    .profile-item {
+      padding: 10px;
+      border-radius: 10px;
+      background: var(--surface-3);
+      border: 1px solid #e7ece8
+    }
+
+    .profile-item span {
+      display: block;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .07em
+    }
+
+    .profile-item strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 12px;
+      text-transform: capitalize
+    }
+
+    .chips {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap
+    }
+
+    .chip {
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid #d8e4db;
+      color: #4f5d53;
+      font-size: 11px
+    }
+
+    .chip.green {
+      background: #e4f2e8;
+      color: var(--green);
+      border-color: #cce1d2
+    }
+
+    .chip.red {
+      background: var(--red-soft);
+      color: var(--red);
+      border-color: #efcdc3
+    }
+
+    .chip.gold {
+      background: var(--gold-soft);
+      color: #79581d;
+      border-color: #eedcae
+    }
+
+    .next-card {
+      background: linear-gradient(135deg, #fff8e9, #fff0d0);
+      border-color: #eedfbf
+    }
+
+    .next-main {
+      display: flex;
+      gap: 11px;
+      align-items: flex-start
+    }
+
+    .target-icon {
+      width: 33px;
+      height: 33px;
+      display: grid;
+      place-items: center;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 0 #ecd8ab;
+      flex: none
+    }
+
+    .next-main strong {
+      display: block;
+      font-size: 14px
+    }
+
+    .next-main p {
+      margin: 3px 0 0;
+      color: #695529;
+      font-size: 12px
+    }
+
+    .skills {
+      display: flex;
+      flex-direction: column;
+      gap: 9px
+    }
+
+    .skill-row {
+      display: grid;
+      grid-template-columns: minmax(120px, .7fr) minmax(120px, 1.5fr) auto;
+      gap: 10px;
+      align-items: center
+    }
+
+    .skill-name {
+      font-size: 12px
+    }
+
+    .skill-track {
+      height: 8px;
+      border-radius: 999px;
+      background: #e7ece8;
+      overflow: hidden
+    }
+
+    .skill-track span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, #65a47e, var(--green));
+      border-radius: inherit
+    }
+
+    .skill-row small {
+      font: 500 10px "IBM Plex Mono", monospace;
+      color: var(--muted)
+    }
+
+    .milestones {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px
+    }
+
+    .mile {
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--surface-3)
+    }
+
+    .mile .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px
+    }
+
+    .mile strong {
+      font-size: 12px
+    }
+
+    .mile .status {
+      padding: 4px 7px;
+      font-size: 10px
+    }
+
+    .mile p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 11px
+    }
+
+    .trail-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px
+    }
+
+    .trail-head .left {
+      display: flex;
+      align-items: center;
+      gap: 9px
+    }
+
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: var(--mint);
+      border: 1px solid #d6eadb;
+      color: var(--green);
+      font-size: 11px
+    }
+
+    .live-badge i {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green)
+    }
+
+    .secondary {
+      border: 1px solid var(--green);
+      background: #fff;
+      color: var(--green);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600
+    }
+
+    .secondary:hover {
+      background: var(--green-soft)
+    }
+
+    #trail-body {
+      padding: 0
+    }
+
+    .trail-banner {
+      margin: 16px;
+      padding: 11px 12px;
+      border-radius: 11px;
+      background: var(--surface-2);
+      border: 1px solid #dceae0;
+      color: #466053;
+      font-size: 12px
+    }
+
+    .trail-list {
+      padding: 0 16px 18px
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr);
+      gap: 11px;
+      position: relative
+    }
+
+    .step::before {
+      content: "";
+      position: absolute;
+      left: 17px;
+      top: 34px;
+      bottom: -15px;
+      width: 2px;
+      background: #dbe5de
+    }
+
+    .step:last-child::before {
+      display: none
+    }
+
+    .step-node {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid var(--green);
+      background: #fff;
+      color: var(--green);
+      display: grid;
+      place-items: center;
+      z-index: 1;
+      font: 500 11px "IBM Plex Mono", monospace
+    }
+
+    .step.current .step-node {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: #fff
+    }
+
+    .step.review .step-node {
+      background: var(--red-soft);
+      border-color: #efc1b5;
+      color: var(--red)
+    }
+
+    .step-card {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(23, 33, 27, .03)
+    }
+
+    .step-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px
+    }
+
+    .step-title {
+      margin: 0;
+      font: 600 19px/1.1 "DM Serif Display", serif
+    }
+
+    .step-resource {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px
+    }
+
+    .step-meta {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 10px
+    }
+
+    .tag {
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-3);
+      color: var(--muted);
+      font-size: 10px
+    }
+
+    .tag.current {
+      background: var(--gold-soft);
+      color: #7d5c1c;
+      border-color: #efdbac
+    }
+
+    .tag.review {
+      background: var(--red-soft);
+      color: var(--red);
+      border-color: #efcdc4
+    }
+
+    .step-reason {
+      margin-top: 10px;
+      padding: 10px 11px;
+      border-radius: 10px;
+      background: #fafcfb;
+      border: 1px dashed #dce7df;
+      color: #536158;
+      font-size: 12px
+    }
+
+    .step-reason strong {
+      color: var(--text)
+    }
+
+    .step-actions {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-top: 11px
+    }
+
+    .step-actions button {
+      padding: 8px 10px;
+      border-radius: 9px;
+      font-size: 11px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text)
+    }
+
+    .step-actions button:hover {
+      background: var(--surface-3)
+    }
+
+    .step-actions .action-primary {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff
+    }
+
+    .step-actions .action-primary:hover {
+      background: var(--green-dark)
+    }
+
+    .step-actions .action-danger {
+      color: var(--red);
+      border-color: #e9c9c0
+    }
+
+    .why-panel {
+      display: none;
+      margin-top: 9px;
+      padding: 11px;
+      border-radius: 10px;
+      background: var(--blue-soft);
+      border: 1px solid #cfe0f4;
+      color: #355579;
+      font-size: 12px
+    }
+
+    .why-panel.open {
+      display: block
+    }
+
+    .empty-state {
+      margin: 16px;
+      padding: 34px 18px;
+      text-align: center;
+      border: 1px dashed #ccd9cf;
+      border-radius: 14px;
+      background: var(--surface-3)
+    }
+
+    .empty-icon {
+      font-size: 30px;
+      margin-bottom: 7px
+    }
+
+    .empty-state h4 {
+      margin: 0;
+      font-size: 16px
+    }
+
+    .empty-state p {
+      margin: 5px auto 0;
+      color: var(--muted);
+      max-width: 480px;
+      font-size: 12px
+    }
+
+    .empty-state button {
+      margin-top: 12px
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      max-width: 380px;
+      background: #18241d;
+      color: #fff;
+      padding: 12px 14px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      font-size: 12px;
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: .2s;
+      z-index: 50
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: none
+    }
+
+    .toast.error {
+      background: #7e3325
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 18, 13, .42);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 40;
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+    }
+
+    .modal-backdrop.open {
+      display: flex
+    }
+
+    .modal {
+      width: min(680px, 100%);
+      max-height: min(88vh, 760px);
+      overflow: auto;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 25px 100px rgba(0, 0, 0, .18)
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .modal-header h4 {
+      margin: 0;
+      font: 600 23px "DM Serif Display", serif
+    }
+
+    .modal-header p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px
+    }
+
+    .close {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #fff
+    }
+
+    .modal-body {
+      padding: 18px
+    }
+
+    .question {
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin-bottom: 10px
+    }
+
+    .question p {
+      margin: 0 0 9px;
+      font-weight: 600;
+      font-size: 13px
+    }
+
+    .option {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      padding: 8px;
+      border-radius: 8px
+    }
+
+    .option:hover {
+      background: var(--surface-3)
+    }
+
+    .option input {
+      margin-top: 3px
+    }
+
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px 18px;
+      border-top: 1px solid var(--line)
+    }
+
+    .result {
+      padding: 14px;
+      border-radius: 12px;
+      margin-bottom: 12px
+    }
+
+    .result.pass {
+      background: #e8f4eb;
+      border: 1px solid #cde4d1;
+      color: #285e3f
+    }
+
+    .result.review {
+      background: var(--gold-soft);
+      border: 1px solid #ecd8a9;
+      color: #76541a
+    }
+
+    .result.fail {
+      background: var(--red-soft);
+      border: 1px solid #ecc9bf;
+      color: var(--red)
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 0 36px;
+      color: var(--muted);
+      font-size: 11px
+    }
+
+    .footer button {
+      border: 0;
+      background: none;
+      color: var(--green);
+      padding: 0;
+      font-size: 11px
+    }
+
+    @media(max-width:980px) {
+
+      .hero-inner,
+      .app-grid {
+        grid-template-columns: 1fr
+      }
+
+      .chat-panel {
+        position: static
+      }
+
+      .goal-hero {
+        grid-template-columns: 1fr
+      }
+
+      .profile-grid {
+        grid-template-columns: repeat(2, 1fr)
+      }
+    }
+
+    @media(max-width:620px) {
+      .container {
+        width: min(100% - 24px, 1240px)
+      }
+
+      .topbar {
+        align-items: flex-start
+      }
+
+      .status {
+        font-size: 10px
+      }
+
+      .hero h2 {
+        font-size: 36px
+      }
+
+      .profile-grid {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .milestones {
+        grid-template-columns: 1fr
+      }
+
+      .step-title {
+        font-size: 17px
+      }
+
+      .chat-form {
+        flex-direction: column
+      }
+
+      .primary {
+        width: 100%
+      }
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+
+      *,
+      *:before,
+      *:after {
+        animation-duration: .001ms !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important
+      }
+    }
+  </style>
 </head>
+
 <body>
-<div class="container">
-  <header class="topbar">
-    <div class="brand"><div class="brand-mark">🧭</div><div><h1>Pathfinder</h1><p>Adaptive learning coach · grounded by your real progress</p></div></div>
-    <div class="status"><span class="status-dot" id="status-dot"></span><span id="status-text">Checking systems…</span></div>
-  </header>
-
-  <section class="hero">
-    <div class="hero-inner">
-      <div class="hero-copy">
-        <div class="eyebrow">AI + ML personalized learning</div>
-        <h2>From <em>“I want to become…”</em> to the next thing you should do.</h2>
-        <p>Tell Pathfinder your goal, skills, interests and constraints. It turns that profile into a prerequisite-aware path, explains the recommendations, and adapts when your evidence or feedback changes.</p>
-      </div>
-      <div class="hero-card"><div><div class="mini-title">What drives the path</div><strong>Goal + gaps + fit + evidence</strong></div><p>The LLM understands your language. The deterministic recommender chooses the path.</p><div class="stats"><span class="hero-stat">Skill graph</span><span class="hero-stat">LambdaRank</span><span class="hero-stat">SHAP</span><span class="hero-stat">Adaptive rerouting</span></div></div>
-    </div>
-  </section>
-
-  <main class="app-grid">
-    <section class="panel chat-panel">
-      <div class="panel-header"><h3>Chat with Pathfinder</h3><small id="chat-context">New learner</small></div>
-      <div class="chat-body">
-        <div class="chat-hint"><strong>Start naturally.</strong><p>Try one sentence with your target role, what you already know, how you like to learn, and your available study time.</p><div class="quick-actions"><button data-suggest="I want to become an AI engineer and learn by building practical projects.">AI engineer</button><button data-suggest="I am intermediate in Python and beginner in ML.">My experience</button><button data-suggest="I prefer hands-on, project-based learning.">Practical learner</button><button data-suggest="I can study 7 hours per week.">Study time</button></div></div>
-        <div id="chat-log"><div class="bubble system">Pathfinder is ready. Tell me where you want to go.</div></div>
-      </div>
-      <div class="completeness"><div class="progress-line"><span>Profile completeness</span><span class="mono" id="completeness-pct">0%</span></div><div class="bar"><span id="completeness-fill"></span></div></div>
-      <form class="chat-form" id="chat-form"><input id="chat-input" placeholder='e.g. “I want to become an AI engineer and I learn best by building.”' autocomplete="off" maxlength="2000"><button class="primary" id="send-btn" type="submit">Send</button></form>
-    </section>
-
-    <section class="panel">
-      <div class="panel-header"><div><h3>Your personalized learning dashboard</h3><small id="dashboard-subtitle">Waiting for your learner profile</small></div><button class="secondary" id="new-user-btn" type="button">New demo learner</button></div>
-      <div class="dashboard">
-        <div class="goal-hero">
-          <div class="metric"><div class="label">Career goal</div><div class="value" id="dash-goal">Not set</div><div class="sub" id="dash-goal-sub">Tell Pathfinder what you want to become.</div></div>
-          <div class="metric"><div class="label">Learning progress</div><div class="value" id="dash-progress">0%</div><div class="bar"><span id="dash-progress-fill" style="background:linear-gradient(90deg,#5b9b76,var(--green))"></span></div><div class="sub" id="dash-progress-sub">Based on tracked mastery, not profile completeness.</div></div>
+  <div class="container">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">🧭</div>
+        <div>
+          <h1>Pathfinder</h1>
+          <p>Adaptive learning coach · grounded by your real progress</p>
         </div>
+      </div>
+      <div class="status"><span class="status-dot" id="status-dot"></span><span id="status-text">Checking
+          systems…</span></div>
+    </header>
 
-        <div class="section"><div class="section-title"><h4>Profile signals</h4><span>What the recommender currently knows</span></div><div class="profile-grid"><div class="profile-item"><span>Level</span><strong id="profile-level">Not set</strong></div><div class="profile-item"><span>Learning style</span><strong id="profile-style">Not set</strong></div><div class="profile-item"><span>Study time</span><strong id="profile-time">Not set</strong></div><div class="profile-item"><span>Interests</span><strong id="profile-interest-count">None</strong></div></div><div class="chips" id="profile-interests" style="margin-top:9px"></div></div>
-
-        <div class="section next-card"><div class="section-title"><h4>Next best action</h4><span id="next-action-status">Waiting</span></div><div class="next-main"><div class="target-icon">🎯</div><div><strong id="next-action-title">Share your goal and current skills.</strong><p id="next-action-text">Pathfinder will use them to select the next available learning step.</p></div></div></div>
-
-        <div class="section"><div class="section-title"><h4>Skill mastery & gaps</h4><span id="skill-summary">No evidence yet</span></div><div class="skills" id="skill-state"><div style="color:var(--muted);font-size:12px">Your prerequisite map will appear here.</div></div></div>
-
-        <div class="section"><div class="section-title"><h4>Milestones</h4><span>Progress through the goal's skill graph</span></div><div class="milestones" id="milestone-state"><div class="mile"><div class="top"><strong>Milestones unlock as you learn</strong></div><p>Build evidence and complete checkpoints to move forward.</p></div></div></div>
-
-        <div class="section" style="padding:0;overflow:hidden"><div class="trail-head" style="padding:14px 14px 12px;border-bottom:1px solid var(--line)"><div class="left"><div><div style="font:600 19px 'DM Serif Display',serif">Adaptive trail</div><div id="trail-status" class="mono" style="font-size:10px;color:var(--muted);margin-top:2px">No roadmap generated yet.</div></div><span class="live-badge"><i></i>Live profile</span></div><button class="secondary" id="generate-btn" disabled>Generate path</button></div><div id="trail-body"><div class="empty-state"><div class="empty-icon">🗺️</div><h4>Your path will appear here</h4><p>Give Pathfinder a meaningful career goal. The trail will then update whenever your profile, feedback, or learning evidence changes.</p></div></div></div>
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <div class="eyebrow">AI + ML personalized learning</div>
+          <h2>From <em>“I want to become…”</em> to the next thing you should do.</h2>
+          <p>Tell Pathfinder your goal, skills, interests and constraints. It turns that profile into a
+            prerequisite-aware path, explains the recommendations, and adapts when your evidence or feedback changes.
+          </p>
+        </div>
+        <div class="hero-card">
+          <div>
+            <div class="mini-title">What drives the path</div><strong>Goal + gaps + fit + evidence</strong>
+          </div>
+          <p>The LLM understands your language. The deterministic recommender chooses the path.</p>
+          <div class="stats"><span class="hero-stat">Skill graph</span><span class="hero-stat">LambdaRank</span><span
+              class="hero-stat">SHAP</span><span class="hero-stat">Adaptive rerouting</span></div>
+        </div>
       </div>
     </section>
-  </main>
 
-  <footer class="footer"><span>Demo learner <span class="mono" id="user-id-display"></span> · profile stored locally in this browser</span><button id="reset-btn" type="button">Reset this learner</button></footer>
-</div>
+    <main class="app-grid">
+      <section class="panel chat-panel">
+        <div class="panel-header">
+          <h3>Chat with Pathfinder</h3><small id="chat-context">New learner</small>
+        </div>
+        <div class="chat-body">
+          <div class="chat-hint"><strong>Start naturally.</strong>
+            <p>Try one sentence with your target role, what you already know, how you like to learn, and your available
+              study time.</p>
+            <div class="quick-actions"><button
+                data-suggest="I want to become an AI engineer and learn by building practical projects.">AI
+                engineer</button><button data-suggest="I am intermediate in Python and beginner in ML.">My
+                experience</button><button data-suggest="I prefer hands-on, project-based learning.">Practical
+                learner</button><button data-suggest="I can study 7 hours per week.">Study time</button></div>
+          </div>
+          <div id="chat-log">
+            <div class="bubble system">Pathfinder is ready. Tell me where you want to go.</div>
+          </div>
+        </div>
+        <div class="completeness">
+          <div class="progress-line"><span>Profile completeness</span><span class="mono" id="completeness-pct">0%</span>
+          </div>
+          <div class="bar"><span id="completeness-fill"></span></div>
+        </div>
+        <form class="chat-form" id="chat-form"><input id="chat-input"
+            placeholder='e.g. “I want to become an AI engineer and I learn best by building.”' autocomplete="off"
+            maxlength="2000"><button class="primary" id="send-btn" type="submit">Send</button></form>
+      </section>
 
-<!-- Custom Reset Learner Modal (Added Here) -->
-<div id="reset-modal" class="modal-backdrop" style="display: none; align-items: center; justify-content: center;">
-  <div class="modal" style="max-width: 400px; text-align: center; padding: 24px;">
-    <h3 style="margin-top: 0;">Start a fresh demo learner?</h3>
-    <p style="color: #666; margin-bottom: 24px; font-size: 14px; line-height: 1.5;">
-      The current local learner will no longer be active in this tab. Your previous progress will remain safely stored on the server under its unique ID.
-    </p>
-    <div style="display: flex; justify-content: center; gap: 12px;">
-      <button class="secondary" onclick="document.getElementById('reset-modal').style.display='none'">Cancel</button>
-      <button class="primary" onclick="confirmResetLearner()">Start Fresh</button>
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Your personalized learning dashboard</h3><small id="dashboard-subtitle">Waiting for your learner
+              profile</small>
+          </div><button class="secondary" id="new-user-btn" type="button">New demo learner</button>
+        </div>
+        <div class="dashboard">
+          <div class="goal-hero">
+            <div class="metric">
+              <div class="label">Career goal</div>
+              <div class="value" id="dash-goal">Not set</div>
+              <div class="sub" id="dash-goal-sub">Tell Pathfinder what you want to become.</div>
+            </div>
+            <div class="metric">
+              <div class="label">Learning progress</div>
+              <div class="value" id="dash-progress">0%</div>
+              <div class="bar"><span id="dash-progress-fill"
+                  style="background:linear-gradient(90deg,#5b9b76,var(--green))"></span></div>
+              <div class="sub" id="dash-progress-sub">Based on tracked mastery, not profile completeness.</div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">
+              <h4>Profile signals</h4><span>What the recommender currently knows</span>
+            </div>
+            <div class="profile-grid">
+              <div class="profile-item"><span>Level</span><strong id="profile-level">Not set</strong></div>
+              <div class="profile-item"><span>Learning style</span><strong id="profile-style">Not set</strong></div>
+              <div class="profile-item"><span>Study time</span><strong id="profile-time">Not set</strong></div>
+              <div class="profile-item"><span>Interests</span><strong id="profile-interest-count">None</strong></div>
+            </div>
+            <div class="chips" id="profile-interests" style="margin-top:9px"></div>
+          </div>
+
+          <div class="section next-card">
+            <div class="section-title">
+              <h4>Next best action</h4><span id="next-action-status">Waiting</span>
+            </div>
+            <div class="next-main">
+              <div class="target-icon">🎯</div>
+              <div><strong id="next-action-title">Share your goal and current skills.</strong>
+                <p id="next-action-text">Pathfinder will use them to select the next available learning step.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">
+              <h4>Skill mastery & gaps</h4><span id="skill-summary">No evidence yet</span>
+            </div>
+            <div class="skills" id="skill-state">
+              <div style="color:var(--muted);font-size:12px">Your prerequisite map will appear here.</div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">
+              <h4>Milestones</h4><span>Progress through the goal's skill graph</span>
+            </div>
+            <div class="milestones" id="milestone-state">
+              <div class="mile">
+                <div class="top"><strong>Milestones unlock as you learn</strong></div>
+                <p>Build evidence and complete checkpoints to move forward.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="section" style="padding:0;overflow:hidden">
+            <div class="trail-head" style="padding:14px 14px 12px;border-bottom:1px solid var(--line)">
+              <div class="left">
+                <div>
+                  <div style="font:600 19px 'DM Serif Display',serif">Adaptive trail</div>
+                  <div id="trail-status" class="mono" style="font-size:10px;color:var(--muted);margin-top:2px">No
+                    roadmap generated yet.</div>
+                </div><span class="live-badge"><i></i>Live profile</span>
+              </div><button class="secondary" id="generate-btn" disabled>Generate path</button>
+            </div>
+            <div id="trail-body">
+              <div class="empty-state">
+                <div class="empty-icon">🗺️</div>
+                <h4>Your path will appear here</h4>
+                <p>Give Pathfinder a meaningful career goal. The trail will then update whenever your profile, feedback,
+                  or learning evidence changes.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer"><span>Demo learner <span class="mono" id="user-id-display"></span> · profile stored locally
+        in this browser</span><button id="reset-btn" type="button">Reset this learner</button></footer>
+  </div>
+
+  <!-- Custom Reset Learner Modal (Added Here) -->
+  <div id="reset-modal" class="modal-backdrop" style="display: none; align-items: center; justify-content: center;">
+    <div class="modal" style="max-width: 400px; text-align: center; padding: 24px;">
+      <h3 style="margin-top: 0;">Start a fresh demo learner?</h3>
+      <p style="color: #666; margin-bottom: 24px; font-size: 14px; line-height: 1.5;">
+        The current local learner will no longer be active in this tab. Your previous progress will remain safely stored
+        on the server under its unique ID.
+      </p>
+      <div style="display: flex; justify-content: center; gap: 12px;">
+        <button class="secondary" onclick="document.getElementById('reset-modal').style.display='none'">Cancel</button>
+        <button class="primary" onclick="confirmResetLearner()">Start Fresh</button>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="toast" id="toast"></div>
-<div class="modal-backdrop" id="modal-backdrop" role="dialog" aria-modal="true"><div class="modal" id="modal"></div></div>
+  <div class="toast" id="toast"></div>
+  <div class="modal-backdrop" id="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal" id="modal"></div>
+  </div>
 
-<script>
-(function(){
-  'use strict';
-  const USER_KEY='pathfinder_demo_user_id_v4';
-  const USER_ID=localStorage.getItem(USER_KEY)||createUser();
-  const $=id=>document.getElementById(id);
-  const chatLog=$('chat-log'), chatForm=$('chat-form'), chatInput=$('chat-input'), sendBtn=$('send-btn');
-  const trailBody=$('trail-body'), generateBtn=$('generate-btn'), modalBackdrop=$('modal-backdrop'), modal=$('modal');
-  let currentGoalId=null, currentProfile={}, latestPath=[];
+  <script>
+    (function () {
+      'use strict';
+      const USER_KEY = 'pathfinder_demo_user_id_v4';
+      const USER_ID = localStorage.getItem(USER_KEY) || createUser();
+      const CHAT_KEY = `pathfinder_chat_${USER_ID}`;
+      const PATH_KEY = `pathfinder_path_${USER_ID}`;
+      const $ = id => document.getElementById(id);
+      const chatLog = $('chat-log'), chatForm = $('chat-form'), chatInput = $('chat-input'), sendBtn = $('send-btn');
+      const trailBody = $('trail-body'), generateBtn = $('generate-btn'), modalBackdrop = $('modal-backdrop'), modal = $('modal');
+      let currentGoalId = null, currentProfile = {}, latestPath = [];
 
-  $('user-id-display').textContent=USER_ID;
-  $('chat-context').textContent='Local demo learner';
+      $('user-id-display').textContent = USER_ID;
+      $('chat-context').textContent = 'Local demo learner';
 
-  function createUser(){const id='user_'+Math.random().toString(36).slice(2,10);localStorage.setItem(USER_KEY,id);return id;}
-  function esc(value){const d=document.createElement('div');d.textContent=String(value??'');return d.innerHTML;}
-  function titleize(id){return String(id||'').replace(/^goal_/,'').replace(/^dynamic:/,'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());}
-  function humanStyle(x){return x==='practice'?'Hands-on / practice':x==='visual'?'Visual / video':x==='reading'?'Reading / text':x?titleize(x):'Not set';}
-  function fmtHours(v){return v==null?'Not set':`${Number(v).toLocaleString(undefined,{maximumFractionDigits:1})} h/week`;}
-  function notify(msg,error=false){const t=$('toast');t.textContent=msg;t.className='toast show'+(error?' error':'');clearTimeout(notify.timer);notify.timer=setTimeout(()=>t.className='toast',3200);}
-  function addBubble(text,who='bot',kind=''){const b=document.createElement('div');b.className=`bubble ${who}${kind?' '+kind:''}`;b.textContent=text;chatLog.appendChild(b);chatLog.scrollTop=chatLog.scrollHeight;return b;}
-  function setCompleteness(v){const pct=Math.round(Number(v||0)*100);$('completeness-fill').style.width=pct+'%';$('completeness-pct').textContent=pct+'%';}
-  function setProfile(data){
-    currentProfile=Object.assign({},currentProfile,data||{});
-    if(data&&data.goal_id) currentGoalId=data.goal_id;
-    if(data&&Object.prototype.hasOwnProperty.call(data,'goal_id')&&!data.goal_id) currentGoalId=null;
-    $('dash-goal').textContent=currentGoalId?titleize(currentGoalId):'Not set';
-    $('dash-goal-sub').textContent=currentGoalId?'The path is grounded in this supported career target.':'Tell Pathfinder what you want to become.';
-    $('profile-level').textContent=data?.experience_level||'Not set';
-    $('profile-style').textContent=humanStyle(data?.learning_style);
-    $('profile-time').textContent=fmtHours(data?.weekly_hours);
-    const interests=data?.interests||[];$('profile-interest-count').textContent=interests.length?`${interests.length} signal${interests.length===1?'':'s'}`:'None';
-    const chipBox=$('profile-interests');chipBox.innerHTML='';interests.forEach(x=>{const s=document.createElement('span');s.className='chip green';s.textContent=titleize(x);chipBox.appendChild(s)});
-    generateBtn.disabled=!currentGoalId;
-    $('dashboard-subtitle').textContent=currentGoalId?`Personalized for ${titleize(currentGoalId)}`:'Waiting for your learner profile';
-  }
-  function updateProgress(pct){const n=Math.max(0,Math.min(100,Number(pct||0)));$('dash-progress').textContent=n.toFixed(0)+'%';$('dash-progress-fill').style.width=n+'%';}
+      function createUser() { const id = 'user_' + Math.random().toString(36).slice(2, 10); localStorage.setItem(USER_KEY, id); return id; }
+      function esc(value) { const d = document.createElement('div'); d.textContent = String(value ?? ''); return d.innerHTML; }
+      function titleize(id) { return String(id || '').replace(/^goal_/, '').replace(/^dynamic:/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
+      function humanStyle(x) { return x === 'practice' ? 'Hands-on / practice' : x === 'visual' ? 'Visual / video' : x === 'reading' ? 'Reading / text' : x ? titleize(x) : 'Not set'; }
+      function fmtHours(v) { return v == null ? 'Not set' : `${Number(v).toLocaleString(undefined, { maximumFractionDigits: 1 })} h/week`; }
+      function notify(msg, error = false) { const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (error ? ' error' : ''); clearTimeout(notify.timer); notify.timer = setTimeout(() => t.className = 'toast', 3200); }
+      function saveChat() {
+        localStorage.setItem(CHAT_KEY, chatLog.innerHTML);
+      }
+      function loadChat() {
+        const savedChat = localStorage.getItem(CHAT_KEY);
 
-  function stateCopy(state,message){const map={
-    no_goal:{icon:'🧭',title:'A career goal is required',text:"Tell me what role you're targeting before generating a path."},
-    mastered:{icon:'✅',title:'Your required skills are already validated',text:'You have reached the current skill boundary. Build a portfolio project or choose a new stretch goal.'},
-    no_candidates:{icon:'📚',title:'No matching resources yet',text:'The goal or skill gaps are understood, but the curated resource catalog does not have a safe match for this step.'},
-    backend_failure:{icon:'⚠️',title:'Your profile was saved, but the path could not refresh',text:'Try Regenerate path. Your learner state is still preserved.'}
-  };return map[state]||{icon:'🗺️',title:'Nothing to show yet',text:message||'Share a little more about your goal and current skills.'};}
-  function renderEmpty(state,message){const c=stateCopy(state,message);trailBody.innerHTML=`<div class="empty-state"><div class="empty-icon">${c.icon}</div><h4>${esc(c.title)}</h4><p>${esc(c.text)}</p>${state==='no_goal'?'<button class="primary" type="button" id="empty-chat-btn">Tell Pathfinder my goal</button>':''}</div>`;$('empty-chat-btn')?.addEventListener('click',()=>chatInput.focus());}
+        if (savedChat) {
+          chatLog.innerHTML = savedChat;
+          chatLog.scrollTop = chatLog.scrollHeight;
+        }
+      }
+      function savePath() {
+        localStorage.setItem(PATH_KEY, JSON.stringify({
+          path: latestPath,
+          goalId: currentGoalId
+        }));
+      }
 
-  function inferType(step){const t=(step.course_title||'').toLowerCase();if(/project|build|lab/.test(t))return'Project / practice';return'Learning resource';}
-  function renderTrail(path,state,message){
-    latestPath=Array.isArray(path)?path:[];$('trail-status').textContent=state==='ok'?`${latestPath.length} adaptive step${latestPath.length===1?'':'s'} · ranked from current learner state`:`Status · ${state||'none'}`;
-    if(state!=='ok'||!latestPath.length){renderEmpty(state,message);return;}
-    trailBody.innerHTML='';
-    const banner=document.createElement('div');banner.className='trail-banner';banner.textContent='Adaptive journey: prerequisite-aware, ranked by career goal, skill gaps, learning style, study time, interests and learner feedback.';trailBody.appendChild(banner);
-    const list=document.createElement('div');list.className='trail-list';
-    latestPath.forEach((step,index)=>{
-      const row=document.createElement('div');row.className='step '+(step.status==='current'?'current ':'')+(step.status==='needs_review'?'review':'');
-      const node=document.createElement('div');node.className='step-node';node.textContent=step.status==='current'?'→':step.status==='needs_review'?'!':String(index+1);row.appendChild(node);
-      const card=document.createElement('article');card.className='step-card';
-      const top=document.createElement('div');top.className='step-top';const left=document.createElement('div');
-      const title=document.createElement('h4');title.className='step-title';title.textContent=titleize(step.skill_id);left.appendChild(title);
-      const res=document.createElement('p');res.className='step-resource';res.textContent=step.course_title;left.appendChild(res);top.appendChild(left);
-      const badge=document.createElement('span');badge.className='chip '+(step.status==='current'?'gold':step.status==='needs_review'?'red':'');badge.textContent=step.status==='current'?'Current step':step.status==='needs_review'?'Needs review':'Next';top.appendChild(badge);card.appendChild(top);
-      const tags=document.createElement('div');tags.className='step-meta';[inferType(step),`${Number(step.duration_hours||0).toLocaleString()}h`,titleize(step.format||'text')].forEach((x,i)=>{const t=document.createElement('span');t.className='tag'+(i===0&&inferType(step).startsWith('Project')?' current':'');t.textContent=x;tags.appendChild(t)});card.appendChild(tags);
-      const reason=document.createElement('div');reason.className='step-reason';reason.innerHTML=`<strong>Why it is here:</strong> ${esc(step.why||'Selected from your current learner state.')}`;card.appendChild(reason);
-      const whyPanel=document.createElement('div');whyPanel.className='why-panel';card.appendChild(whyPanel);
-      const actions=document.createElement('div');actions.className='step-actions';
-      const whyBtn=document.createElement('button');whyBtn.textContent='Why this?';whyBtn.onclick=async()=>{whyPanel.classList.toggle('open');if(!whyPanel.dataset.loaded){whyPanel.textContent='Loading grounded explanation…';try{const r=await fetch(`/explain/${encodeURIComponent(step.course_id)}/${encodeURIComponent(USER_ID)}`);const d=await r.json();if(!r.ok)throw new Error(d.detail||'Explanation unavailable');whyPanel.textContent=d.explanation||'This resource was selected from your current profile and model evidence.';whyPanel.dataset.loaded='1';}catch(e){whyPanel.textContent='The grounded explanation is temporarily unavailable.';}}};actions.appendChild(whyBtn);
-      const learnBtn=document.createElement('button');learnBtn.textContent='Mark learned';learnBtn.onclick=()=>completeResource(step,learnBtn);actions.appendChild(learnBtn);
-      const projBtn=document.createElement('button');projBtn.textContent='Build project';projBtn.onclick=()=>openProject(step);actions.appendChild(projBtn);
-      const assessBtn=document.createElement('button');assessBtn.className='action-primary';assessBtn.textContent='Take checkpoint';assessBtn.onclick=()=>openAssessment(step);actions.appendChild(assessBtn);
-      card.appendChild(actions);row.appendChild(card);list.appendChild(row);
-    });
-    trailBody.appendChild(list);
-    const first=latestPath[0];$('next-action-title').textContent=first?titleize(first.skill_id):'Keep learning';$('next-action-text').textContent=first?`Start with ${first.course_title}. Finish it, then validate the skill with the checkpoint.`:'Continue building evidence for your goal.';$('next-action-status').textContent=first?'Ready now':'Complete';
-  }
+      function loadPath() {
+        const savedPath = localStorage.getItem(PATH_KEY);
 
-  async function refreshHealth(){try{const r=await fetch('/health');const d=await r.json();const ok=d.status==='ok';$('status-dot').className='status-dot '+(ok?'ok':'degraded');$('status-text').textContent=ok?`AI + ML · ${String(d.llm_backend||'LLM ready').replace('Client','')}`:'Backend degraded';}catch(e){$('status-dot').className='status-dot degraded';$('status-text').textContent='Backend unreachable';}}
+        if (!savedPath) return false;
 
-  async function hydrate(){
-    try{const r=await fetch(`/profile/${encodeURIComponent(USER_ID)}`);if(r.ok){const d=await r.json();const p=d.profile||{};setProfile(p);setCompleteness(d.profile_completeness);if(p.goal_id){await fetchPath(false);}else{renderEmpty('no_goal');}}}
-    catch(e){renderEmpty('backend_failure');}
-    await refreshDashboard();
-  }
-  async function refreshDashboard(){
-    try{const r=await fetch(`/learning/state/${encodeURIComponent(USER_ID)}`);if(!r.ok)return;const d=await r.json();currentGoalId=d.goal_id||currentGoalId;currentProfile.progress_pct=d.progress_pct;updateProgress(d.progress_pct);setProfile(Object.assign({},currentProfile,{goal_id:currentGoalId}));
-      const skillsBox=$('skill-state');skillsBox.innerHTML='';const skills=d.skills||[];$('skill-summary').textContent=skills.length?`${skills.filter(x=>x.status==='mastered').length}/${skills.length} mastered`:'No evidence yet';if(!skills.length){skillsBox.innerHTML='<div style="color:var(--muted);font-size:12px">Your prerequisite map will appear here.</div>';}else{skills.forEach(x=>{const row=document.createElement('div');row.className='skill-row';const n=document.createElement('div');n.className='skill-name';n.textContent=x.name||titleize(x.skill_id);const track=document.createElement('div');track.className='skill-track';const fill=document.createElement('span');fill.style.width=Math.max(0,Math.min(100,x.mastery||0))+'%';track.appendChild(fill);const stat=document.createElement('small');stat.textContent=`${Number(x.mastery||0).toFixed(0)}% · ${x.status}`;row.append(n,track,stat);skillsBox.appendChild(row);});}
-      const mb=$('milestone-state');mb.innerHTML='';(d.milestones||[]).forEach(m=>{const mEl=document.createElement('div');mEl.className='mile';const top=document.createElement('div');top.className='top';const st=document.createElement('strong');st.textContent=m.title;const chip=document.createElement('span');chip.className='status '+(m.complete?'':'degraded');chip.textContent=m.complete?'Complete':'In progress';top.append(st,chip);const p=document.createElement('p');p.textContent=`${(m.skills||[]).length} skill${(m.skills||[]).length===1?'':'s'} in this milestone`;mEl.append(top,p);mb.appendChild(mEl);});
-      if(d.next_best_action){const n=d.next_best_action;$('next-action-title').textContent=titleize(n.skill_id);$('next-action-text').textContent=n.why||`Start ${n.course_title||'the next recommended step'}.`; $('next-action-status').textContent='Ready now';}
-    }catch(e){}
-  }
-  // In api/static/index.html
-  async function fetchPath(showToast=true){
-      if(!currentGoalId){renderEmpty('no_goal');$('trail-status').textContent='Goal required';return false;}
-      generateBtn.disabled=true;const old=generateBtn.textContent;generateBtn.textContent='Streaming path…';
-      
-      try{
-          const response=await fetch('/path/generate',{
-              method:'POST',
-              headers:{'Content-Type':'application/json'},
-              body:JSON.stringify({user_id:USER_ID})
-          });
-          if(!response.ok) throw new Error(`HTTP ${response.status}`);
-          
-          const reader=response.body.getReader();
-          const decoder=new TextDecoder('utf-8');
-          let currentPath=[];
+        try {
+          const data = JSON.parse(savedPath);
 
-          while(true){
-              const {done,value}=await reader.read();
-              if(done) break;
-              
-              const chunkStr=decoder.decode(value, {stream: true});
-              const events=chunkStr.split('\n\n');
-              
-              for(const event of events){
-                  if(event.includes('[DONE]')) break;
-                  if(event.startsWith('data: ')){
-                      const jsonStr=event.replace('data: ','').trim();
-                      if(jsonStr){
-                          currentPath.push(JSON.parse(jsonStr));
-                          renderTrail(currentPath, 'ok', 'Streaming...');
-                      }
-                  }
-              }
+          if (data.path && data.path.length) {
+            latestPath = data.path;
+            currentGoalId = data.goalId || currentGoalId;
+
+            renderTrail(latestPath, 'ok');
+            return true;
           }
-          
+        } catch (e) {
+          console.error('Could not load saved path:', e);
+        }
+
+        return false;
+      }
+      function addBubble(text, who = 'bot', kind = '') {
+        const b = document.createElement('div');
+        b.className = `bubble ${who}${kind ? ' ' + kind : ''}`;
+        b.textContent = text;
+        chatLog.appendChild(b);
+        chatLog.scrollTop = chatLog.scrollHeight;
+        saveChat();
+        return b;
+      }
+      function setCompleteness(v) { const pct = Math.round(Number(v || 0) * 100); $('completeness-fill').style.width = pct + '%'; $('completeness-pct').textContent = pct + '%'; }
+      function setProfile(data) {
+        currentProfile = Object.assign({}, currentProfile, data || {});
+        if (data && data.goal_id) currentGoalId = data.goal_id;
+        if (data && Object.prototype.hasOwnProperty.call(data, 'goal_id') && !data.goal_id) currentGoalId = null;
+        $('dash-goal').textContent = currentGoalId ? titleize(currentGoalId) : 'Not set';
+        $('dash-goal-sub').textContent = currentGoalId ? 'The path is grounded in this supported career target.' : 'Tell Pathfinder what you want to become.';
+        $('profile-level').textContent = data?.experience_level || 'Not set';
+        $('profile-style').textContent = humanStyle(data?.learning_style);
+        $('profile-time').textContent = fmtHours(data?.weekly_hours);
+        const interests = data?.interests || []; $('profile-interest-count').textContent = interests.length ? `${interests.length} signal${interests.length === 1 ? '' : 's'}` : 'None';
+        const chipBox = $('profile-interests'); chipBox.innerHTML = ''; interests.forEach(x => { const s = document.createElement('span'); s.className = 'chip green'; s.textContent = titleize(x); chipBox.appendChild(s) });
+        generateBtn.disabled = !currentGoalId;
+        $('dashboard-subtitle').textContent = currentGoalId ? `Personalized for ${titleize(currentGoalId)}` : 'Waiting for your learner profile';
+      }
+      function updateProgress(pct) { const n = Math.max(0, Math.min(100, Number(pct || 0))); $('dash-progress').textContent = n.toFixed(0) + '%'; $('dash-progress-fill').style.width = n + '%'; }
+
+      function stateCopy(state, message) {
+        const map = {
+          no_goal: { icon: '🧭', title: 'A career goal is required', text: "Tell me what role you're targeting before generating a path." },
+          mastered: { icon: '✅', title: 'Your required skills are already validated', text: 'You have reached the current skill boundary. Build a portfolio project or choose a new stretch goal.' },
+          no_candidates: { icon: '📚', title: 'No matching resources yet', text: 'The goal or skill gaps are understood, but the curated resource catalog does not have a safe match for this step.' },
+          backend_failure: { icon: '⚠️', title: 'Your profile was saved, but the path could not refresh', text: 'Try Regenerate path. Your learner state is still preserved.' }
+        }; return map[state] || { icon: '🗺️', title: 'Nothing to show yet', text: message || 'Share a little more about your goal and current skills.' };
+      }
+      function renderEmpty(state, message) { const c = stateCopy(state, message); trailBody.innerHTML = `<div class="empty-state"><div class="empty-icon">${c.icon}</div><h4>${esc(c.title)}</h4><p>${esc(c.text)}</p>${state === 'no_goal' ? '<button class="primary" type="button" id="empty-chat-btn">Tell Pathfinder my goal</button>' : ''}</div>`; $('empty-chat-btn')?.addEventListener('click', () => chatInput.focus()); }
+
+      function inferType(step) { const t = (step.course_title || '').toLowerCase(); if (/project|build|lab/.test(t)) return 'Project / practice'; return 'Learning resource'; }
+      function renderTrail(path, state, message) {
+        latestPath = Array.isArray(path) ? path : [];
+        if (state === 'ok' && latestPath.length) {
+          savePath();
+        }
+        $('trail-status').textContent = state === 'ok' ? `${latestPath.length} adaptive step${latestPath.length === 1 ? '' : 's'} · ranked from current learner state` : `Status · ${state || 'none'}`;
+        if (state !== 'ok' || !latestPath.length) { renderEmpty(state, message); return; }
+        trailBody.innerHTML = '';
+        const banner = document.createElement('div'); banner.className = 'trail-banner'; banner.textContent = 'Adaptive journey: prerequisite-aware, ranked by career goal, skill gaps, learning style, study time, interests and learner feedback.'; trailBody.appendChild(banner);
+        const list = document.createElement('div'); list.className = 'trail-list';
+        latestPath.forEach((step, index) => {
+          const row = document.createElement('div'); row.className = 'step ' + (step.status === 'current' ? 'current ' : '') + (step.status === 'needs_review' ? 'review' : '');
+          const node = document.createElement('div'); node.className = 'step-node'; node.textContent = step.status === 'current' ? '→' : step.status === 'needs_review' ? '!' : String(index + 1); row.appendChild(node);
+          const card = document.createElement('article'); card.className = 'step-card';
+          const top = document.createElement('div'); top.className = 'step-top'; const left = document.createElement('div');
+          const title = document.createElement('h4'); title.className = 'step-title'; title.textContent = titleize(step.skill_id); left.appendChild(title);
+          const res = document.createElement('p'); res.className = 'step-resource'; res.textContent = step.course_title; left.appendChild(res); top.appendChild(left);
+          const badge = document.createElement('span'); badge.className = 'chip ' + (step.status === 'current' ? 'gold' : step.status === 'needs_review' ? 'red' : ''); badge.textContent = step.status === 'current' ? 'Current step' : step.status === 'needs_review' ? 'Needs review' : 'Next'; top.appendChild(badge); card.appendChild(top);
+          const tags = document.createElement('div'); tags.className = 'step-meta';[inferType(step), `${Number(step.duration_hours || 0).toLocaleString()}h`, titleize(step.format || 'text')].forEach((x, i) => { const t = document.createElement('span'); t.className = 'tag' + (i === 0 && inferType(step).startsWith('Project') ? ' current' : ''); t.textContent = x; tags.appendChild(t) }); card.appendChild(tags);
+          const reason = document.createElement('div'); reason.className = 'step-reason'; reason.innerHTML = `<strong>Why it is here:</strong> ${esc(step.why || 'Selected from your current learner state.')}`; card.appendChild(reason);
+          const whyPanel = document.createElement('div'); whyPanel.className = 'why-panel'; card.appendChild(whyPanel);
+          const actions = document.createElement('div'); actions.className = 'step-actions';
+          const whyBtn = document.createElement('button'); whyBtn.textContent = 'Why this?'; whyBtn.onclick = async () => { whyPanel.classList.toggle('open'); if (!whyPanel.dataset.loaded) { whyPanel.textContent = 'Loading grounded explanation…'; try { const r = await fetch(`/explain/${encodeURIComponent(step.course_id)}/${encodeURIComponent(USER_ID)}`); const d = await r.json(); if (!r.ok) throw new Error(d.detail || 'Explanation unavailable'); whyPanel.textContent = d.explanation || 'This resource was selected from your current profile and model evidence.'; whyPanel.dataset.loaded = '1'; } catch (e) { whyPanel.textContent = 'The grounded explanation is temporarily unavailable.'; } } }; actions.appendChild(whyBtn);
+          const learnBtn = document.createElement('button'); learnBtn.textContent = 'Mark learned'; learnBtn.onclick = () => completeResource(step, learnBtn); actions.appendChild(learnBtn);
+          const projBtn = document.createElement('button'); projBtn.textContent = 'Build project'; projBtn.onclick = () => openProject(step); actions.appendChild(projBtn);
+          const assessBtn = document.createElement('button'); assessBtn.className = 'action-primary'; assessBtn.textContent = 'Take checkpoint'; assessBtn.onclick = () => openAssessment(step); actions.appendChild(assessBtn);
+          card.appendChild(actions); row.appendChild(card); list.appendChild(row);
+        });
+        trailBody.appendChild(list);
+        const first = latestPath[0]; $('next-action-title').textContent = first ? titleize(first.skill_id) : 'Keep learning'; $('next-action-text').textContent = first ? `Start with ${first.course_title}. Finish it, then validate the skill with the checkpoint.` : 'Continue building evidence for your goal.'; $('next-action-status').textContent = first ? 'Ready now' : 'Complete';
+      }
+
+      async function refreshHealth() { try { const r = await fetch('/health'); const d = await r.json(); const ok = d.status === 'ok'; $('status-dot').className = 'status-dot ' + (ok ? 'ok' : 'degraded'); $('status-text').textContent = ok ? `AI + ML · ${String(d.llm_backend || 'LLM ready').replace('Client', '')}` : 'Backend degraded'; } catch (e) { $('status-dot').className = 'status-dot degraded'; $('status-text').textContent = 'Backend unreachable'; } }
+
+      async function hydrate() {
+        try {
+          const r = await fetch(`/profile/${encodeURIComponent(USER_ID)}`);
+
+          if (r.ok) {
+            const d = await r.json();
+            const p = d.profile || {};
+
+            setProfile(p);
+            setCompleteness(d.profile_completeness);
+
+            const hasSavedPath = loadPath();
+
+            if (!hasSavedPath) {
+              if (p.goal_id) {
+                await fetchPath(false);
+              } else {
+                renderEmpty('no_goal');
+              }
+            }
+          }
+        }
+        catch (e) {
+          renderEmpty('backend_failure');
+        }
+        await refreshDashboard();
+      }
+      async function refreshDashboard() {
+        try {
+          const r = await fetch(`/learning/state/${encodeURIComponent(USER_ID)}`); if (!r.ok) return; const d = await r.json(); currentGoalId = d.goal_id || currentGoalId; currentProfile.progress_pct = d.progress_pct; updateProgress(d.progress_pct); setProfile(Object.assign({}, currentProfile, { goal_id: currentGoalId }));
+          const skillsBox = $('skill-state'); skillsBox.innerHTML = ''; const skills = d.skills || []; $('skill-summary').textContent = skills.length ? `${skills.filter(x => x.status === 'mastered').length}/${skills.length} mastered` : 'No evidence yet'; if (!skills.length) { skillsBox.innerHTML = '<div style="color:var(--muted);font-size:12px">Your prerequisite map will appear here.</div>'; } else { skills.forEach(x => { const row = document.createElement('div'); row.className = 'skill-row'; const n = document.createElement('div'); n.className = 'skill-name'; n.textContent = x.name || titleize(x.skill_id); const track = document.createElement('div'); track.className = 'skill-track'; const fill = document.createElement('span'); fill.style.width = Math.max(0, Math.min(100, x.mastery || 0)) + '%'; track.appendChild(fill); const stat = document.createElement('small'); stat.textContent = `${Number(x.mastery || 0).toFixed(0)}% · ${x.status}`; row.append(n, track, stat); skillsBox.appendChild(row); }); }
+          const mb = $('milestone-state'); mb.innerHTML = ''; (d.milestones || []).forEach(m => { const mEl = document.createElement('div'); mEl.className = 'mile'; const top = document.createElement('div'); top.className = 'top'; const st = document.createElement('strong'); st.textContent = m.title; const chip = document.createElement('span'); chip.className = 'status ' + (m.complete ? '' : 'degraded'); chip.textContent = m.complete ? 'Complete' : 'In progress'; top.append(st, chip); const p = document.createElement('p'); p.textContent = `${(m.skills || []).length} skill${(m.skills || []).length === 1 ? '' : 's'} in this milestone`; mEl.append(top, p); mb.appendChild(mEl); });
+          if (d.next_best_action) { const n = d.next_best_action; $('next-action-title').textContent = titleize(n.skill_id); $('next-action-text').textContent = n.why || `Start ${n.course_title || 'the next recommended step'}.`; $('next-action-status').textContent = 'Ready now'; }
+        } catch (e) { }
+      }
+      // In api/static/index.html
+      async function fetchPath(showToast = true) {
+        if (!currentGoalId) { renderEmpty('no_goal'); $('trail-status').textContent = 'Goal required'; return false; }
+        generateBtn.disabled = true; const old = generateBtn.textContent; generateBtn.textContent = 'Streaming path…';
+
+        try {
+          const response = await fetch('/path/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: USER_ID })
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let currentPath = [];
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunkStr = decoder.decode(value, { stream: true });
+            const events = chunkStr.split('\n\n');
+
+            for (const event of events) {
+              if (event.includes('[DONE]')) break;
+              if (event.startsWith('data: ')) {
+                const jsonStr = event.replace('data: ', '').trim();
+                if (jsonStr) {
+                  currentPath.push(JSON.parse(jsonStr));
+                  renderTrail(currentPath, 'ok', 'Streaming...');
+                }
+              }
+            }
+          }
+
           updateProgress(currentProfile.progress_pct);
           await refreshDashboard();
-          if(showToast)notify('Roadmap dynamically generated via LLM.');
+          if (showToast) notify('Roadmap dynamically generated via LLM.');
           return true;
-      }
-      catch(e){
+        }
+        catch (e) {
           renderEmpty('backend_failure');
-          $('trail-status').textContent='Refresh failed';
-          if(showToast)notify(e.message||'Could not refresh the roadmap.',true);
+          $('trail-status').textContent = 'Refresh failed';
+          if (showToast) notify(e.message || 'Could not refresh the roadmap.', true);
           return false;
+        }
+        finally {
+          generateBtn.disabled = !currentGoalId;
+          generateBtn.textContent = currentGoalId ? 'Regenerate path' : old;
+        }
       }
-      finally{
-          generateBtn.disabled=!currentGoalId;
-          generateBtn.textContent=currentGoalId?'Regenerate path':old;
+
+      async function completeResource(step, button) { button.disabled = true; try { const r = await fetch(`/learning/resources/${encodeURIComponent(step.course_id)}/complete?user_id=${encodeURIComponent(USER_ID)}&skill_id=${encodeURIComponent(step.skill_id)}`, { method: 'POST' }); const d = await r.json(); if (!r.ok) throw new Error(d.detail || 'Could not record learning'); notify('Learning activity recorded. Re-ranking your next step.'); addBubble(`Completed: ${step.course_title}`, 'bot'); await fetchPath(false); await refreshDashboard(); } catch (e) { notify(e.message, true) } finally { button.disabled = false; } }
+
+      function openProject(step) {
+        fetch(`/learning/projects/${encodeURIComponent(step.skill_id)}`).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.detail || 'Project unavailable'); modal.innerHTML = `<div class="modal-header"><div><h4>${esc(d.title)}</h4><p>Portfolio project · ${esc(step.course_title)}</p></div><button class="close" type="button" id="close-modal">×</button></div><div class="modal-body"><div class="section" style="margin:0"><div class="section-title"><h4>Project brief</h4><span>${esc(d.estimated_hours)}h</span></div><p style="margin:0;color:var(--muted);font-size:13px">${esc(d.description)}</p></div><div class="chips" style="margin-top:12px">${(d.skills || []).map(x => `<span class="chip green">${esc(titleize(x))}</span>`).join('')}</div></div><div class="modal-footer"><span style="font-size:11px;color:var(--muted)">Project evidence increases mastery but does not replace the checkpoint.</span><button class="primary" id="complete-project">Record project complete</button></div>`; openModal(); $('close-modal').onclick = closeModal; $('complete-project').onclick = async () => { const btn = $('complete-project'); btn.disabled = true; try { const r = await fetch(`/learning/projects/${encodeURIComponent(step.skill_id)}/complete?user_id=${encodeURIComponent(USER_ID)}`, { method: 'POST' }); const x = await r.json(); if (!r.ok) throw new Error(x.detail || 'Could not record project'); closeModal(); notify('Project evidence recorded. Your path has been refreshed.'); addBubble('Project evidence recorded. The skill is still checkpoint-ready.', 'bot'); await fetchPath(false); await refreshDashboard(); } catch (e) { notify(e.message, true) } finally { btn.disabled = false; } } }).catch(e => notify(e.message, true));
       }
-  }
 
-  async function completeResource(step,button){button.disabled=true;try{const r=await fetch(`/learning/resources/${encodeURIComponent(step.course_id)}/complete?user_id=${encodeURIComponent(USER_ID)}&skill_id=${encodeURIComponent(step.skill_id)}`,{method:'POST'});const d=await r.json();if(!r.ok)throw new Error(d.detail||'Could not record learning');notify('Learning activity recorded. Re-ranking your next step.');addBubble(`Completed: ${step.course_title}`,'bot');await fetchPath(false);await refreshDashboard();}catch(e){notify(e.message,true)}finally{button.disabled=false;}}
+      async function openAssessment(step) {
+        try {
+          const r = await fetch(`/assessment/${encodeURIComponent(step.skill_id)}`); const d = await r.json(); if (!r.ok) throw new Error(d.detail || 'Assessment unavailable');
+          modal.innerHTML = `<div class="modal-header"><div><h4>${esc(titleize(step.skill_id))} checkpoint</h4><p>Deterministic checkpoint · your answers update real mastery state</p></div><button class="close" type="button" id="close-modal">×</button></div><div class="modal-body"><div id="assessment-result"></div><form id="assessment-form">${(d.questions || []).map((q, i) => `<div class="question"><p>${i + 1}. ${esc(q.question)}</p>${q.options.map((o, j) => `<label class="option"><input type="radio" name="${esc(q.id)}" value="${j}" required><span>${esc(o)}</span></label>`).join('')}</div>`).join('')}</form></div><div class="modal-footer"><span style="font-size:11px;color:var(--muted)">${(d.questions || []).length} questions · server calculates the score</span><button class="primary" id="submit-assessment" type="button">Submit checkpoint</button></div>`; openModal(); $('close-modal').onclick = closeModal; $('submit-assessment').onclick = () => submitAssessment(step, d.questions || []);
+        } catch (e) { notify(e.message, true) }
+      }
+      async function submitAssessment(step, questions) {
+        const form = $('assessment-form'); if (!form.reportValidity()) return; const answers = {}; questions.forEach(q => { const picked = form.querySelector(`input[name="${CSS.escape(q.id)}"]:checked`); if (picked) answers[q.id] = Number(picked.value); }); const btn = $('submit-assessment'); btn.disabled = true; btn.textContent = 'Scoring…';
+        try {
+          const r = await fetch('/assessment/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: USER_ID, skill_id: step.skill_id, answers }) }); const d = await r.json(); if (!r.ok) throw new Error(d.detail || 'Assessment failed');
+          const status = d.assessment_status || 'failed'; const score = Number(d.assessment_score || 0); const klass = status === 'validated' ? 'pass' : status === 'needs_review' ? 'review' : 'fail'; const label = status === 'validated' ? 'Validated' : status === 'needs_review' ? 'Needs review' : 'Failed'; $('assessment-result').innerHTML = `<div class="result ${klass}"><strong>${label} · ${score.toFixed(0)}%</strong><div style="font-size:12px;margin-top:3px">${esc(d.message || 'Your mastery state was updated and the path was recalculated.')}</div></div>`; addBubble(`Checkpoint: ${titleize(step.skill_id)} scored ${score.toFixed(0)}%. ${d.message || ''}`, 'bot'); renderTrail(d.path, d.state, d.message); updateProgress(d.progress_pct); await refreshDashboard(); notify(status === 'validated' ? 'Skill validated — the next prerequisite can unlock.' : 'Skill reopened — the trail now includes review.'); btn.textContent = 'Done'; btn.disabled = false; setTimeout(closeModal, 1100);
+        } catch (e) { notify(e.message, true); btn.disabled = false; btn.textContent = 'Submit checkpoint'; }
+      }
+      function openModal() { modalBackdrop.classList.add('open'); document.body.style.overflow = 'hidden'; }
+      function closeModal() { modalBackdrop.classList.remove('open'); document.body.style.overflow = ''; modal.innerHTML = ''; }
+      modalBackdrop.addEventListener('click', e => { if (e.target === modalBackdrop) closeModal(); }); document.addEventListener('keydown', e => { if (e.key === 'Escape' && modalBackdrop.classList.contains('open')) closeModal(); });
 
-  function openProject(step){
-    fetch(`/learning/projects/${encodeURIComponent(step.skill_id)}`).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.detail||'Project unavailable');modal.innerHTML=`<div class="modal-header"><div><h4>${esc(d.title)}</h4><p>Portfolio project · ${esc(step.course_title)}</p></div><button class="close" type="button" id="close-modal">×</button></div><div class="modal-body"><div class="section" style="margin:0"><div class="section-title"><h4>Project brief</h4><span>${esc(d.estimated_hours)}h</span></div><p style="margin:0;color:var(--muted);font-size:13px">${esc(d.description)}</p></div><div class="chips" style="margin-top:12px">${(d.skills||[]).map(x=>`<span class="chip green">${esc(titleize(x))}</span>`).join('')}</div></div><div class="modal-footer"><span style="font-size:11px;color:var(--muted)">Project evidence increases mastery but does not replace the checkpoint.</span><button class="primary" id="complete-project">Record project complete</button></div>`;openModal();$('close-modal').onclick=closeModal;$('complete-project').onclick=async()=>{const btn=$('complete-project');btn.disabled=true;try{const r=await fetch(`/learning/projects/${encodeURIComponent(step.skill_id)}/complete?user_id=${encodeURIComponent(USER_ID)}`,{method:'POST'});const x=await r.json();if(!r.ok)throw new Error(x.detail||'Could not record project');closeModal();notify('Project evidence recorded. Your path has been refreshed.');addBubble('Project evidence recorded. The skill is still checkpoint-ready.','bot');await fetchPath(false);await refreshDashboard();}catch(e){notify(e.message,true)}finally{btn.disabled=false;}}}).catch(e=>notify(e.message,true));
-  }
-
-  async function openAssessment(step){
-    try{const r=await fetch(`/assessment/${encodeURIComponent(step.skill_id)}`);const d=await r.json();if(!r.ok)throw new Error(d.detail||'Assessment unavailable');
-      modal.innerHTML=`<div class="modal-header"><div><h4>${esc(titleize(step.skill_id))} checkpoint</h4><p>Deterministic checkpoint · your answers update real mastery state</p></div><button class="close" type="button" id="close-modal">×</button></div><div class="modal-body"><div id="assessment-result"></div><form id="assessment-form">${(d.questions||[]).map((q,i)=>`<div class="question"><p>${i+1}. ${esc(q.question)}</p>${q.options.map((o,j)=>`<label class="option"><input type="radio" name="${esc(q.id)}" value="${j}" required><span>${esc(o)}</span></label>`).join('')}</div>`).join('')}</form></div><div class="modal-footer"><span style="font-size:11px;color:var(--muted)">${(d.questions||[]).length} questions · server calculates the score</span><button class="primary" id="submit-assessment" type="button">Submit checkpoint</button></div>`;openModal();$('close-modal').onclick=closeModal;$('submit-assessment').onclick=()=>submitAssessment(step,d.questions||[]);
-    }catch(e){notify(e.message,true)}
-  }
-  async function submitAssessment(step,questions){
-    const form=$('assessment-form');if(!form.reportValidity())return;const answers={};questions.forEach(q=>{const picked=form.querySelector(`input[name="${CSS.escape(q.id)}"]:checked`);if(picked)answers[q.id]=Number(picked.value);});const btn=$('submit-assessment');btn.disabled=true;btn.textContent='Scoring…';
-    try{const r=await fetch('/assessment/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:USER_ID,skill_id:step.skill_id,answers})});const d=await r.json();if(!r.ok)throw new Error(d.detail||'Assessment failed');
-      const status=d.assessment_status||'failed';const score=Number(d.assessment_score||0);const klass=status==='validated'?'pass':status==='needs_review'?'review':'fail';const label=status==='validated'?'Validated':status==='needs_review'?'Needs review':'Failed';$('assessment-result').innerHTML=`<div class="result ${klass}"><strong>${label} · ${score.toFixed(0)}%</strong><div style="font-size:12px;margin-top:3px">${esc(d.message||'Your mastery state was updated and the path was recalculated.')}</div></div>`;addBubble(`Checkpoint: ${titleize(step.skill_id)} scored ${score.toFixed(0)}%. ${d.message||''}`,'bot');renderTrail(d.path,d.state,d.message);updateProgress(d.progress_pct);await refreshDashboard();notify(status==='validated'?'Skill validated — the next prerequisite can unlock.':'Skill reopened — the trail now includes review.');btn.textContent='Done';btn.disabled=false;setTimeout(closeModal,1100);
-    }catch(e){notify(e.message,true);btn.disabled=false;btn.textContent='Submit checkpoint';}
-  }
-  function openModal(){modalBackdrop.classList.add('open');document.body.style.overflow='hidden';}
-  function closeModal(){modalBackdrop.classList.remove('open');document.body.style.overflow='';modal.innerHTML='';}
-  modalBackdrop.addEventListener('click',e=>{if(e.target===modalBackdrop)closeModal();});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modalBackdrop.classList.contains('open'))closeModal();});
-
-  chatForm.addEventListener('submit',async e=>{e.preventDefault();const text=chatInput.value.trim();if(!text)return;addBubble(text,'user');chatInput.value='';chatInput.disabled=true;sendBtn.disabled=true;sendBtn.textContent='Thinking…';const wait=addBubble('Updating your learner profile…','bot');
-    try{const r=await fetch('/profile/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:USER_ID,message:text})});const d=await r.json();wait.remove();if(!r.ok)throw new Error(d.detail||`HTTP ${r.status}`);addBubble(d.reply,'bot');setCompleteness(d.profile_completeness);setProfile(d);updateProgress(d.progress_pct);if(d.path_state||d.roadmap_updated)renderTrail(d.path,d.path_state,d.path_message);if(d.path_state==='backend_failure')notify('Profile saved; roadmap refresh needs another try.',true);else if(d.roadmap_updated)notify('Roadmap updated from your latest profile signal.');await refreshDashboard();}
-    catch(e){wait.remove();addBubble(e.message||'I could not safely update the profile.','bot','error');notify(e.message||'Profile update failed.',true);}finally{chatInput.disabled=false;sendBtn.disabled=false;sendBtn.textContent='Send';chatInput.focus();}
-  });
-  document.querySelectorAll('[data-suggest]').forEach(btn=>btn.addEventListener('click',()=>{chatInput.value=btn.dataset.suggest;chatInput.focus();}));
-  generateBtn.addEventListener('click',()=>fetchPath(true));
-  $('new-user-btn').addEventListener('click',()=>{if(!confirm('Start a fresh demo learner? The current local learner will no longer be active in this tab.'))return;localStorage.setItem(USER_KEY,'user_'+Math.random().toString(36).slice(2,10));location.reload();});
-  $('reset-btn').addEventListener('click',()=>{if(!confirm('Reset this learner profile and conversation?'))return;localStorage.removeItem(USER_KEY);location.reload();});
-  refreshHealth();hydrate();
-})();
-</script>
+      chatForm.addEventListener('submit', async e => {
+        e.preventDefault(); const text = chatInput.value.trim(); if (!text) return; addBubble(text, 'user'); chatInput.value = ''; chatInput.disabled = true; sendBtn.disabled = true; sendBtn.textContent = 'Thinking…'; const wait = addBubble('Updating your learner profile…', 'bot');
+        try { const r = await fetch('/profile/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: USER_ID, message: text }) }); const d = await r.json(); wait.remove(); if (!r.ok) throw new Error(d.detail || `HTTP ${r.status}`); addBubble(d.reply, 'bot'); setCompleteness(d.profile_completeness); setProfile(d); updateProgress(d.progress_pct); if (d.path_state || d.roadmap_updated) renderTrail(d.path, d.path_state, d.path_message); if (d.path_state === 'backend_failure') notify('Profile saved; roadmap refresh needs another try.', true); else if (d.roadmap_updated) notify('Roadmap updated from your latest profile signal.'); await refreshDashboard(); }
+        catch (e) { wait.remove(); addBubble(e.message || 'I could not safely update the profile.', 'bot', 'error'); notify(e.message || 'Profile update failed.', true); } finally { chatInput.disabled = false; sendBtn.disabled = false; sendBtn.textContent = 'Send'; chatInput.focus(); }
+      });
+      document.querySelectorAll('[data-suggest]').forEach(btn => btn.addEventListener('click', () => { chatInput.value = btn.dataset.suggest; chatInput.focus(); }));
+      generateBtn.addEventListener('click', () => fetchPath(true));
+      $('new-user-btn').addEventListener('click', () => {localStorage.setItem(USER_KEY, 'user_' + Math.random().toString(36).slice(2, 10)); location.reload(); });
+      $('reset-btn').addEventListener('click', () => {localStorage.removeItem(USER_KEY); location.reload(); });
+      refreshHealth();
+      loadChat();
+      hydrate();
+    })();
+  </script>
 </body>
+
 </html>

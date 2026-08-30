@@ -1,10 +1,9 @@
 """Retrieval over the skill/goal catalog, reusing the exact TF-IDF +
 SVD embedding space DataTransformation already fit in Phase 2 - no
-separate vector store, no model download. Narrows a free-text message
-down to the candidate ids that are actually plausible, so the
-conversational agent picks from a short, grounded list instead of
-inventing or misspelling an id."""
+separate vector store, no model download."""
+
 import pickle
+import re
 import sys
 
 import numpy as np
@@ -15,66 +14,184 @@ from src.recommender.logger import logging
 
 
 class RAGEngine:
-    def __init__(self, preprocessor_path: str, skills_path: str, goals_path: str) -> None:
+    def __init__(
+        self,
+        preprocessor_path: str,
+        skills_path: str,
+        goals_path: str,
+    ) -> None:
         try:
             with open(preprocessor_path, "rb") as f:
                 preprocessor = pickle.load(f)
+
             self.tfidf = preprocessor["tfidf"]
             self.svd = preprocessor["svd"]
 
             skills_df = pd.read_csv(skills_path)
             goals_df = pd.read_csv(goals_path)
-            self._skills = skills_df[["skill_id", "skill_name"]].to_dict("records")
-            self._goals = goals_df[["goal_id", "title"]].to_dict("records")
-            self._skill_emb = self.svd.transform(self.tfidf.transform(skills_df["skill_name"]))
-            self._goal_emb = self.svd.transform(self.tfidf.transform(goals_df["title"]))
-            logging.info(
-                f"RAGEngine ready: {len(self._skills)} skills, {len(self._goals)} goals indexed"
+
+            self._skills = skills_df[
+                ["skill_id", "skill_name"]
+            ].to_dict("records")
+
+            self._goals = goals_df[
+                ["goal_id", "title"]
+            ].to_dict("records")
+
+            self._skill_emb = self.svd.transform(
+                self.tfidf.transform(skills_df["skill_name"])
             )
+
+            self._goal_emb = self.svd.transform(
+                self.tfidf.transform(goals_df["title"])
+            )
+
+            logging.info(
+                f"RAGEngine ready: {len(self._skills)} skills, "
+                f"{len(self._goals)} goals indexed"
+            )
+
         except Exception as e:
             raise RecommenderException(e, sys) from e
 
     def _embed(self, text: str) -> np.ndarray:
-        return self.svd.transform(self.tfidf.transform([text]))[0]
+        return self.svd.transform(
+            self.tfidf.transform([text])
+        )[0]
 
     @staticmethod
-    def _top_k(query_vec: np.ndarray, candidates: list[dict], emb_matrix: np.ndarray, top_k: int) -> list[dict]:
+    def _normalize(text: str) -> str:
+        return re.sub(
+            r"[^a-z0-9]+",
+            " ",
+            str(text).lower(),
+        ).strip()
+
+    @staticmethod
+    def _top_k(
+        query_vec: np.ndarray,
+        candidates: list[dict],
+        emb_matrix: np.ndarray,
+        top_k: int,
+    ) -> list[dict]:
+
         if len(candidates) == 0:
             return []
+
         q_norm = np.linalg.norm(query_vec) or 1.0
+
         row_norms = np.linalg.norm(emb_matrix, axis=1)
         row_norms[row_norms == 0] = 1.0
-        sims = (emb_matrix @ query_vec) / (row_norms * q_norm)
-        order = np.argsort(-sims)[: min(top_k, len(candidates))]
+
+        sims = (
+            emb_matrix @ query_vec
+        ) / (row_norms * q_norm)
+
+        order = np.argsort(-sims)[:min(top_k, len(candidates))]
+
         return [candidates[i] for i in order]
 
-    def retrieve_skills(self, query: str, top_k: int = 8) -> list[dict]:
+    def retrieve_skills(
+        self,
+        query: str,
+        top_k: int = 8,
+    ) -> list[dict]:
+
         try:
-            return self._top_k(self._embed(query), self._skills, self._skill_emb, top_k)
+            return self._top_k(
+                self._embed(query),
+                self._skills,
+                self._skill_emb,
+                top_k,
+            )
+
         except Exception as e:
             raise RecommenderException(e, sys) from e
 
-    def retrieve_goals(self, query: str, top_k: int = 3) -> list[dict]:
+    def retrieve_goals(
+        self,
+        query: str,
+        top_k: int = 3,
+    ) -> list[dict]:
+
         try:
-            return self._top_k(self._embed(query), self._goals, self._goal_emb, top_k)
+            if not self._goals:
+                return []
+
+            query_vec = self._embed(query)
+
+            q_norm = np.linalg.norm(query_vec) or 1.0
+
+            row_norms = np.linalg.norm(
+                self._goal_emb,
+                axis=1,
+            )
+            row_norms[row_norms == 0] = 1.0
+
+            sims = (
+                self._goal_emb @ query_vec
+            ) / (row_norms * q_norm)
+
+            query_norm = self._normalize(query)
+
+            # Boost an explicitly mentioned career goal
+            for i, goal in enumerate(self._goals):
+                title_norm = self._normalize(goal["title"])
+
+                if title_norm and title_norm in query_norm:
+                    sims[i] += 1.0
+
+            order = np.argsort(-sims)[:min(top_k, len(self._goals))]
+
+            return [self._goals[i] for i in order]
+
         except Exception as e:
             raise RecommenderException(e, sys) from e
 
     def canonical_goal(self, goal_id: str) -> dict | None:
-        return next((g for g in self._goals if g["goal_id"] == goal_id), None)
+        return next(
+            (
+                g
+                for g in self._goals
+                if g["goal_id"] == goal_id
+            ),
+            None,
+        )
 
     def canonical_skill(self, skill_id: str) -> dict | None:
-        return next((s for s in self._skills if s["skill_id"] == skill_id), None)
+        return next(
+            (
+                s
+                for s in self._skills
+                if s["skill_id"] == skill_id
+            ),
+            None,
+        )
 
-    def ground_profile(self, profile: dict, goals: list[dict], skills: list[dict]) -> tuple[list[dict], list[dict]]:
+    def ground_profile(
+        self,
+        profile: dict,
+        goals: list[dict],
+        skills: list[dict],
+    ) -> tuple[list[dict], list[dict]]:
+
         """Keep already-confirmed canonical ids available to later turns."""
-        goal = self.canonical_goal(profile.get("goal_id")) if profile.get("goal_id") else None
+
+        goal = (
+            self.canonical_goal(profile.get("goal_id"))
+            if profile.get("goal_id")
+            else None
+        )
+
         if goal and goal not in goals:
             goals = [goal, *goals]
+
         existing = []
+
         for sid in profile.get("skill_ids", []):
             skill = self.canonical_skill(sid)
+
             if skill and skill not in skills:
                 existing.append(skill)
-        return goals, existing + skills
 
+        return goals, existing + skills
