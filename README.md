@@ -4,58 +4,72 @@
 
 ### Adaptive AI-powered career guidance and personalized learning paths
 
-Turn a career goal into a **structured, prerequisite-aware learning journey** —
-then continuously adapt that journey as skills are learned, projects are
-completed, and assessments reveal what needs attention.
+Turn a career goal into a **structured, prerequisite-aware learning journey** that adapts as skills are learned, projects are completed, and assessments reveal what needs attention.
 
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python\&logoColor=white)
-![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi\&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
 ![LightGBM](https://img.shields.io/badge/Ranking-LightGBM-success)
 ![LLM](https://img.shields.io/badge/LLM-Groq%20%7C%20OpenAI%20%7C%20Mistral-purple)
-![Tests](https://img.shields.io/badge/Tests-pytest-0A9EDC?logo=pytest\&logoColor=white)
-![Docker](https://img.shields.io/badge/Container-Docker-2496ED?logo=docker\&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-pytest-0A9EDC?logo=pytest&logoColor=white)
+![Docker](https://img.shields.io/badge/Container-Docker-2496ED?logo=docker&logoColor=white)
 
 </div>
 
 <br>
 
 <p align="center">
-  <img src="docs/assets/dashboard-overview.png" alt="SkillCompass Dashboard" width="900">
+  <img src="docs/assets/dashboard-overview.png"
+       alt="SkillCompass Dashboard Overview"
+       width="900">
+</p>
+
+<p align="center">
+  <i>Personalized learner dashboard with progress, career guidance, and next actions.</i>
 </p>
 
 ---
 
 # 🚀 What is SkillCompass?
 
-SkillCompass is an **AI-driven adaptive learning-path recommendation system**
-designed to help learners move from a career goal to a structured and
-personalized learning journey.
+**SkillCompass** is an AI-driven adaptive learning-path recommendation system that helps learners move from a career goal to a structured and personalized learning journey.
 
-Unlike a static roadmap generator, SkillCompass maintains a **live learner
-state**. It considers what the learner already knows, which prerequisites are
-missing, what they have completed, which projects they have built, and how they
-perform in skill assessments.
+Unlike a static roadmap generator, SkillCompass maintains a **live learner state** and considers:
 
-The system combines:
+- 🎯 Career goals
+- 🧠 Existing skills and experience
+- 🕸️ Missing prerequisites
+- 📚 Learning preferences
+- ⏱️ Available study time
+- 📝 Assessment results
+- 💼 Completed projects
+- 📊 Skill mastery and progress
 
-* 🧠 **LLM-powered conversational profiling**
-* 🎯 **Career-goal intelligence**
-* 🕸️ **Prerequisite-aware skill graphs**
-* 📊 **Personalized resource ranking**
-* 🔍 **Grounded recommendation explanations**
-* 📝 **Skill assessments and mastery tracking**
-* 💼 **Portfolio project recommendations**
-* 🔄 **Adaptive roadmap regeneration**
+> **The learning path should adapt when the learner changes.**
 
 ---
 
-## From a simple goal to an adaptive journey
+# ⚡ Core Capabilities
 
-A learner can start with a simple statement:
+SkillCompass combines:
+
+- 💬 LLM-powered conversational profiling
+- 🎯 Career-goal intelligence
+- 🕸️ Prerequisite-aware skill graphs
+- 📊 Personalized resource ranking with LightGBM
+- 🔍 Grounded recommendation explanations
+- 📝 Skill assessments and mastery tracking
+- 💼 Portfolio project recommendations
+- 🔄 Adaptive roadmap regeneration
+
+---
+
+# 🔁 From Goal to Adaptive Journey
+
+A learner can start with a simple goal:
 
 > **"I want to become an MLOps Engineer."**
 
-SkillCompass transforms that goal into an adaptive workflow:
+SkillCompass transforms it into:
 
 ```text
 Career Goal
@@ -84,233 +98,269 @@ Updated Learner State
     └──────────────► Future Roadmap Adapts
 ```
 
-The roadmap is not generated once and forgotten.
-
-As the learner progresses, their updated state influences what SkillCompass
-recommends next.
+The roadmap is not generated once and forgotten. As the learner progresses, the updated learner state influences future recommendations.
 
 ---
 
-# 💡 Why SkillCompass?
-
-Most learning platforms provide a fixed sequence of courses.
-
-SkillCompass is designed around a different principle:
-
-> **The learning path should change when the learner changes.**
-
-For example:
-
-* A learner already knows Python → unnecessary beginner content can be avoided.
-* A prerequisite is missing → it can be introduced before dependent skills.
-* A learner fails a checkpoint → the skill can be marked for review.
-* A learner completes a project → practical evidence is preserved.
-* Learner progress changes → future recommendations are generated from the
-  updated learner state.
-
-SkillCompass focuses on answering:
-
-> **What should this learner focus on next — and why?**
-
----
-
-# ⚡ Core Capabilities
-
-## 💬 Conversational Profiling
+# 💬 Conversational Profiling
 
 Learners can describe their goals and background naturally.
 
-`/profile/chat` processes conversational input and extracts structured learner
-information such as:
+The profiling flow extracts structured information such as:
 
-* Career goal
-* Current skills
-* Experience level
-* Learning preferences
-* Available weekly study time
+- Career goal
+- Current skills
+- Experience level
+- Learning preferences
+- Available study time
+- Interests
 
-Supported LLM providers include:
+Example:
 
-* **Groq**
-* **OpenAI**
-* **Mistral**
+```text
+"I want to become an MLOps Engineer.
+I know Python and prefer hands-on learning.
+I can study 7 hours per week."
+```
 
-A deterministic local fallback supports the core application flow when an
-external LLM provider is not configured.
+## Supported LLM Providers
 
-The LLM helps interpret learner intent and communicate responses. The
-underlying roadmap remains grounded in SkillCompass's career-goal registry,
-skill graph, learner state, and recommendation pipeline.
+- **Groq**
+- **OpenAI**
+- **Mistral**
 
----
+A deterministic local fallback supports core application flows when an external LLM provider is unavailable.
 
-## 🎯 Career-Goal Intelligence
-
-SkillCompass supports **51 career goals** spanning:
-
-* Data, Analytics & AI
-* Software Engineering
-* Cloud, Platform & Reliability
-* IT, Support & Security
-* Quality, Product & Design
-* Specialized Engineering
-* Technical & Business
-
-The learner's natural-language goal is resolved against the supported
-career-goal registry and connected to relevant skills and learning
-requirements.
-
-The complete list is available in the
-[Supported Career Goals](#-supported-career-goals) section.
+The LLM is used for **intent interpretation and natural-language interaction**. Core roadmap decisions remain grounded in the career registry, skill graph, learner state, and recommendation pipeline.
 
 ---
 
-## 🕸️ Prerequisite-Aware Learning Paths
+# 🎯 Career-Goal Intelligence
 
-Skills are represented through a prerequisite graph built using
-**NetworkX**.
+SkillCompass currently supports **51 career goals** across data, AI, software engineering, cloud, security, design, and other technical domains.
 
-Instead of recommending skills as an unrelated list:
+Natural-language goals are resolved against a supported career-goal registry and connected to relevant skills, prerequisites, and learning requirements.
+
+## Supported Career Goals
+
+<details>
+<summary><strong>📊 Data, Analytics & AI — 14 Roles</strong></summary>
+
+<br>
+
+- Data Analyst
+- Business Intelligence Analyst
+- Data Scientist
+- ML Engineer
+- MLOps Engineer
+- Machine Learning Researcher
+- AI Engineer
+- Computer Vision Engineer
+- NLP Engineer
+- Prompt Engineer
+- Data Engineer
+- Analytics Engineer
+- Data Governance Analyst
+- Data Privacy Engineer
+
+</details>
+
+<details>
+<summary><strong>💻 Software Engineering — 8 Roles</strong></summary>
+
+<br>
+
+- Frontend Engineer
+- Web Performance Engineer
+- Backend Engineer
+- Full-Stack Engineer
+- Solutions Architect
+- Growth Engineer
+- Android Engineer
+- iOS Engineer
+
+</details>
+
+<details>
+<summary><strong>☁️ Cloud, Platform & Reliability — 7 Roles</strong></summary>
+
+<br>
+
+- Cloud Engineer
+- Cloud Architect
+- DevOps Engineer
+- Site Reliability Engineer
+- Platform Engineer
+- Infrastructure Engineer
+- Release Engineer
+
+</details>
+
+<details>
+<summary><strong>🔐 IT, Support & Security — 7 Roles</strong></summary>
+
+<br>
+
+- Systems Administrator
+- IT Support Specialist
+- Technical Support Engineer
+- Network Engineer
+- Security Engineer
+- Penetration Tester
+- Database Administrator
+
+</details>
+
+<details>
+<summary><strong>🎨 Quality, Product & Design — 5 Roles</strong></summary>
+
+<br>
+
+- QA Engineer
+- Product Manager
+- Scrum Master
+- UX Designer
+- UI Designer
+
+</details>
+
+<details>
+<summary><strong>⚙️ Specialized Engineering — 5 Roles</strong></summary>
+
+<br>
+
+- Game Developer
+- Embedded Systems Engineer
+- Robotics Engineer
+- AR/VR Developer
+- Blockchain Developer
+
+</details>
+
+<details>
+<summary><strong>📈 Technical & Business — 5 Roles</strong></summary>
+
+<br>
+
+- Technical Writer
+- Digital Marketing Analyst
+- SEO Specialist
+- Salesforce Developer
+- ERP Consultant
+
+</details>
+
+---
+
+# 🕸️ Prerequisite-Aware Learning Paths
+
+Skills are represented using a prerequisite graph built with **NetworkX**.
+
+Instead of treating a roadmap as an unrelated list of resources:
 
 ```text
 Python → Machine Learning → MLOps
 ```
 
-SkillCompass considers dependencies and learner state before determining what
-should come next.
+SkillCompass considers:
 
-`PathGenerator` identifies:
+- Skills the learner already knows
+- Missing skills
+- Required prerequisites
+- Dependencies between skills
+- Learner progress and mastery
 
-* Skills the learner already has
-* Missing skills
-* Required prerequisites
-* A valid learning sequence
-
-This helps create a roadmap that follows skill dependencies instead of simply
-listing popular courses.
+`PathGenerator` uses this information to create a valid learning sequence and prioritize foundational gaps before dependent skills.
 
 ---
 
-## 📊 Personalized Resource Ranking
+# 📊 Personalized Resource Ranking
 
-Learning resources are ranked according to learner-specific and
-resource-related signals.
+Candidate learning resources are ranked using learner-specific and resource-specific signals.
 
 Examples include:
 
-* Learning-style compatibility
-* Available study time
-* Resource duration
-* Current skill requirements
-* Career-goal relevance
+- Learning-style compatibility
+- Available study time
+- Resource duration
+- Skill requirements
+- Career-goal relevance
 
-The ranking pipeline uses **LightGBM** to rank candidate learning resources.
+The ranking pipeline uses **LightGBM** to prioritize candidate learning resources.
 
-Feature engineering is shared between training and serving to reduce the risk
-of train/serve feature inconsistencies.
+Feature engineering is shared between training and serving to reduce the risk of train/serve feature inconsistencies.
 
 ---
 
-## 🔍 Grounded Recommendation Explanations
+# 🔍 Grounded Recommendation Explanations
 
 Recommendations should not feel like black boxes.
 
-`/explain/{course_id}/{user_id}` provides explanations based on the strongest
-factors influencing a recommendation.
+The explanation flow communicates:
 
-The explanation pipeline can communicate:
+- Why a resource was recommended
+- Which learner or resource signals influenced the result
+- How the recommendation relates to the learner's current path
 
-* Why a resource was recommended
-* Which learner or resource signals mattered
-* How the recommendation relates to the learner's current path
+**Feature-attribution signals** provide the underlying evidence, while the LLM can help present those grounded signals in natural language.
 
-Feature-attribution signals provide the underlying explanation, while the LLM
-helps present the result in natural language.
-
-The LLM does not independently invent the recommendation reasons.
+> The LLM does not independently invent recommendation reasons.
 
 ---
 
-## 📝 Assessments & Mastery Tracking
+# 📝 Assessments & Mastery Tracking
 
 Skill checkpoints allow learners to validate their understanding.
 
-Assessment outcomes update learner mastery states such as:
+Assessment outcomes can update mastery states such as:
 
 ```text
 validated
 needs_review
 ```
 
-These outcomes can influence future learning-path generation.
-
-For example:
+These outcomes can influence future learning decisions.
 
 ```text
 Assessment Passed
         ↓
-Skill Marked as Validated
+Skill Validated
         ↓
-Dependent Skills Can Become Relevant
+Dependent Skills Become Relevant
 ```
-
-or:
 
 ```text
 Assessment Needs Improvement
         ↓
-Skill Marked as Needs Review
+Skill Needs Review
         ↓
-Future Recommendations Can Adapt
+Future Recommendations Adapt
 ```
 
 ---
 
-## 💼 Portfolio Projects as Evidence
+# 💼 Portfolio Projects as Evidence
 
 Learning a skill and demonstrating a skill are not the same thing.
 
-SkillCompass connects relevant skills to practical portfolio projects through
-the project catalog.
+SkillCompass connects relevant skills to practical portfolio projects.
 
-This allows the learner's progress to include different forms of evidence:
+Learner progress can include:
 
-* 📚 Learning resources completed
-* 📝 Skills validated through assessments
-* 💼 Practical projects completed
+- 📚 Learning resources completed
+- 📝 Skills validated through assessments
+- 💼 Practical projects completed
 
-This provides a richer representation of learner progress than resource
-completion alone.
+This provides a richer representation of learner progress than resource completion alone.
 
 ---
 
-## 🔄 Adaptive Roadmap Regeneration
-
-SkillCompass treats learner progress as dynamic.
-
-When learner state changes:
-
-* Skills may become validated
-* Skills may require review
-* Resources may be completed
-* Projects may be completed
-* Prerequisite gaps may change
-
-The system can regenerate future recommendations from the learner's updated
-state.
-
-Historical progress remains preserved while the future part of the roadmap
-adapts.
-
----
-
-# 🔁 How the Adaptive Learning Loop Works
+# 🔄 Adaptive Learning Loop
 
 ```mermaid
 flowchart LR
     U["Learner Message"] --> CP["Conversational Profiling"]
     CP --> CG["Career Goal Intelligence"]
-
     CG --> PS["Live Learner Profile"]
 
     PS --> PG["Path Generator"]
@@ -335,162 +385,51 @@ flowchart LR
     PS --> PG
 ```
 
-The adaptive loop powers learner-facing functionality such as:
-
-* Next best action
-* Skill gaps
-* Skill mastery
-* Learning milestones
-* Personalized resource recommendations
-* Assessment-driven roadmap updates
+<p align="center">
+  <img src="docs/assets/adaptive-trail.png"
+       alt="SkillCompass Adaptive Learning Path"
+       width="900">
+</p>
 
 <p align="center">
-  <img src="docs/assets/adaptive-trail.png" alt="Adaptive Learning Path" width="900">
+  <i>Prerequisite-aware learning paths with resources, projects, and skill checkpoints.</i>
 </p>
 
 ---
 
-# 🎯 Supported Career Goals
+# 🏆 Career Goal Completion
 
-SkillCompass currently supports **51 career goals**.
+SkillCompass tracks learner progress across the skills required for a selected career path.
 
-<details>
+As required skills are validated and progress is recorded, the system can identify completion of the tracked learning journey.
 
-<summary><strong>📊 Data, Analytics & AI — 14 Roles</strong></summary>
+<p align="center">
+  <img src="docs/assets/goal-mastered.png"
+       alt="SkillCompass Career Goal Mastered"
+       width="900">
+</p>
 
-<br>
-
-* Data Analyst
-* Business Intelligence Analyst
-* Data Scientist
-* ML Engineer
-* MLOps Engineer
-* Machine Learning Researcher
-* AI Engineer
-* Computer Vision Engineer
-* NLP Engineer
-* Prompt Engineer
-* Data Engineer
-* Analytics Engineer
-* Data Governance Analyst
-* Data Privacy Engineer
-
-</details>
-
-<details>
-
-<summary><strong>💻 Software Engineering — 8 Roles</strong></summary>
-
-<br>
-
-* Frontend Engineer
-* Web Performance Engineer
-* Backend Engineer
-* Full-Stack Engineer
-* Solutions Architect
-* Growth Engineer
-* Android Engineer
-* iOS Engineer
-
-</details>
-
-<details>
-
-<summary><strong>☁️ Cloud, Platform & Reliability — 7 Roles</strong></summary>
-
-<br>
-
-* Cloud Engineer
-* Cloud Architect
-* DevOps Engineer
-* Site Reliability Engineer
-* Platform Engineer
-* Infrastructure Engineer
-* Release Engineer
-
-</details>
-
-<details>
-
-<summary><strong>🔐 IT, Support & Security — 7 Roles</strong></summary>
-
-<br>
-
-* Systems Administrator
-* IT Support Specialist
-* Technical Support Engineer
-* Network Engineer
-* Security Engineer
-* Penetration Tester
-* Database Administrator
-
-</details>
-
-<details>
-
-<summary><strong>🎨 Quality, Product & Design — 5 Roles</strong></summary>
-
-<br>
-
-* QA Engineer
-* Product Manager
-* Scrum Master
-* UX Designer
-* UI Designer
-
-</details>
-
-<details>
-
-<summary><strong>⚙️ Specialized Engineering — 5 Roles</strong></summary>
-
-<br>
-
-* Game Developer
-* Embedded Systems Engineer
-* Robotics Engineer
-* AR/VR Developer
-* Blockchain Developer
-
-</details>
-
-<details>
-
-<summary><strong>📈 Technical & Business — 5 Roles</strong></summary>
-
-<br>
-
-* Technical Writer
-* Digital Marketing Analyst
-* SEO Specialist
-* Salesforce Developer
-* ERP Consultant
-
-</details>
-
-The career-goal registry keeps role intelligence data-driven.
-
-Career paths can be connected to relevant skills, prerequisites, learning
-requirements, and recommendations without requiring the core application logic
-to be redesigned for every supported role.
+<p align="center">
+  <i>Career-goal completion after required skills have been validated.</i>
+</p>
 
 ---
 
 # 🏗️ Architecture & Technology Stack
 
-| Layer            | Technology                    | Purpose                                                                          |
-| ---------------- | ----------------------------- | -------------------------------------------------------------------------------- |
-| API              | **FastAPI + Pydantic v2**     | Handles profiling, learning paths, explanations, assessments, and learner state. |
-| Ranking Model    | **LightGBM**                  | Ranks candidate learning resources.                                              |
-| Explainability   | **SHAP**                      | Supports feature-attribution-based explanations.                                 |
-| Text Processing  | **TF-IDF + SVD**              | Text representation and retrieval-related functionality.                         |
-| Skill Graph      | **NetworkX DiGraph**          | Represents skill prerequisites and dependencies.                                 |
-| LLM Providers    | **Groq / OpenAI / Mistral**   | Conversational profiling and natural-language responses.                         |
-| Fallback         | **Deterministic Local Logic** | Supports core flows without external LLM credentials.                            |
-| Profile Storage  | **JSON**                      | Current local/demo persistence for learner state.                                |
-| Testing          | **pytest / unittest**         | Unit and integration testing.                                                    |
-| Code Quality     | **Ruff**                      | Linting and static code-quality checks.                                          |
-| Containerization | **Docker**                    | Reproducible application packaging.                                              |
+| Layer | Technology | Purpose |
+|---|---|---|
+| API | **FastAPI + Pydantic v2** | Application endpoints and request validation |
+| Ranking Model | **LightGBM** | Personalized resource ranking |
+| Explainability | **SHAP** | Feature-attribution-based explanations |
+| Text Processing | **TF-IDF + SVD** | Text representation and retrieval functionality |
+| Skill Graph | **NetworkX DiGraph** | Skill prerequisites and dependencies |
+| LLM Providers | **Groq / OpenAI / Mistral** | Conversational profiling and natural-language responses |
+| Fallback | **Deterministic Local Logic** | Core flows without external LLM credentials |
+| Profile Storage | **JSON** | Current local/demo learner-state persistence |
+| Testing | **pytest / unittest** | Unit and integration testing |
+| Code Quality | **Ruff** | Linting and code-quality checks |
+| Containerization | **Docker** | Reproducible application packaging |
 
 ---
 
@@ -542,7 +481,6 @@ SkillCompass/
 │       │   └── feature_engineering.py
 │       │
 │       ├── entity/
-│       │
 │       ├── goal_intelligence.py
 │       ├── assessment_engine.py
 │       └── project_catalog.py
@@ -551,13 +489,13 @@ SkillCompass/
 │   └── seed/
 │
 ├── artifacts/
-│
 ├── config/
 │
 ├── docs/
 │   └── assets/
 │       ├── dashboard-overview.png
-│       └── adaptive-trail.png
+│       ├── adaptive-trail.png
+│       └── goal-mastered.png
 │
 ├── tests/
 │   ├── unit/
@@ -575,25 +513,23 @@ SkillCompass/
 
 # 🔌 API Surface
 
-| Method | Endpoint                                   | Purpose                                                    |
-| ------ | ------------------------------------------ | ---------------------------------------------------------- |
-| `POST` | `/profile/chat`                            | Process conversational learner profiling and update state. |
-| `GET`  | `/profile/{user_id}`                       | Retrieve a learner profile.                                |
-| `POST` | `/path/generate`                           | Generate a personalized learning roadmap.                  |
-| `GET`  | `/explain/{course_id}/{user_id}`           | Explain why a resource was recommended.                    |
-| `GET`  | `/assessment/{skill_id}`                   | Retrieve assessment questions for a skill.                 |
-| `POST` | `/assessment/submit`                       | Submit and evaluate an assessment.                         |
-| `GET`  | `/learning/state/{user_id}`                | Retrieve learner progress and mastery state.               |
-| `GET`  | `/learning/projects/{skill_id}`            | Retrieve projects associated with a skill.                 |
-| `POST` | `/learning/projects/{skill_id}/complete`   | Record project completion.                                 |
-| `POST` | `/learning/resources/{course_id}/complete` | Record learning-resource completion.                       |
-| `GET`  | `/health`                                  | Check application health and status.                       |
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/profile/chat` | Process conversational profiling and update learner state |
+| `GET` | `/profile/{user_id}` | Retrieve a learner profile |
+| `POST` | `/path/generate` | Generate a personalized learning roadmap |
+| `GET` | `/explain/{course_id}/{user_id}` | Explain a recommendation |
+| `GET` | `/assessment/{skill_id}` | Retrieve assessment questions |
+| `POST` | `/assessment/submit` | Submit and evaluate an assessment |
+| `GET` | `/learning/state/{user_id}` | Retrieve learner progress and mastery |
+| `GET` | `/learning/projects/{skill_id}` | Retrieve projects for a skill |
+| `POST` | `/learning/projects/{skill_id}/complete` | Record project completion |
+| `POST` | `/learning/resources/{course_id}/complete` | Record resource completion |
+| `GET` | `/health` | Check application health |
 
 ---
 
-# 🧠 Recommendation & Learning Pipeline
-
-The recommendation workflow is designed around a structured pipeline:
+# 🧠 Recommendation Pipeline
 
 ```text
 Learner Profile
@@ -617,7 +553,7 @@ Personalized Recommendations
 Feature Attribution / Explanation
 ```
 
-The learner's updated progress can then influence the next recommendation cycle.
+Updated learner progress can influence the next recommendation cycle.
 
 ---
 
@@ -625,27 +561,15 @@ The learner's updated progress can then influence the next recommendation cycle.
 
 ## Leakage-Aware Evaluation
 
-Training and evaluation data are separated before evaluating learner-dependent
-recommendation signals.
-
-The objective is to reduce the risk of evaluating the model using information
-that would not have been available when making the original recommendation.
-
----
+Training and evaluation are separated to reduce the risk of evaluating learner signals using information that would not have been available at recommendation time.
 
 ## Chronological Learning Features
 
-Learning-event features are designed around event ordering.
-
-Historical learner state should be constructed from information available before
-the relevant learning event rather than future outcomes.
-
----
+Learning-event features are designed around event ordering so historical learner state is constructed from information available before the relevant event.
 
 ## Shared Feature Engineering
 
-Feature engineering logic is centralized to reduce the risk of training and
-serving using different feature definitions.
+Feature engineering is centralized so training and serving use consistent feature definitions.
 
 ```text
 Training Data
@@ -688,15 +612,11 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
----
-
 ## 3️⃣ Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
-
----
 
 ## 4️⃣ Configure environment variables
 
@@ -712,9 +632,7 @@ MISTRAL_API_KEY=your_mistral_api_key
 LLM_PROVIDER=groq
 ```
 
-### Supported LLM providers
-
-Set `LLM_PROVIDER` to the provider you want to use:
+### Supported `LLM_PROVIDER` values
 
 ```env
 LLM_PROVIDER=groq
@@ -730,27 +648,18 @@ LLM_PROVIDER=mistral
 
 Only configure the API key required for the provider you select.
 
-For example, using **Mistral**:
+Example:
 
 ```env
 MISTRAL_API_KEY=your_mistral_api_key
 LLM_PROVIDER=mistral
 ```
 
-If your application supports deterministic fallback behavior, the fallback can
-be used when an external provider is unavailable or not configured, depending
-on the application's LLM configuration logic.
-
-
 ## 5️⃣ Run the training pipeline
 
 ```bash
 python main.py
 ```
-
-This prepares the required pipeline artifacts used by the application.
-
----
 
 ## 6️⃣ Run tests
 
@@ -763,8 +672,6 @@ or:
 ```bash
 python -m unittest discover tests
 ```
-
----
 
 ## 7️⃣ Start the application
 
@@ -792,53 +699,47 @@ docker compose up --build
 
 # ⚙️ Configuration
 
-Configuration and model parameters can control values such as:
+Examples of configurable parameters include:
 
-| Parameter                     | Purpose                                            |
-| ----------------------------- | -------------------------------------------------- |
-| `score_threshold`             | Ranking/evaluation threshold.                      |
-| `top_k_features`              | Number of important attribution signals returned.  |
-| `min_confidence`              | Minimum confidence for recommendations.            |
-| `max_path_length`             | Maximum skills considered in a generated path.     |
-| `candidate_courses_per_skill` | Maximum resources evaluated per skill.             |
-| `svd_components`              | Dimensionality of the TF-IDF + SVD representation. |
-| `model_params.*`              | Ranking-model hyperparameters.                     |
+| Parameter | Purpose |
+|---|---|
+| `score_threshold` | Ranking/evaluation threshold |
+| `top_k_features` | Number of important attribution signals |
+| `min_confidence` | Minimum recommendation confidence |
+| `max_path_length` | Maximum skills considered in a path |
+| `candidate_courses_per_skill` | Maximum resources evaluated per skill |
+| `svd_components` | TF-IDF + SVD representation dimensionality |
+| `model_params.*` | Ranking-model hyperparameters |
 
 ---
 
 # 🧪 Testing
 
-Run the complete test suite:
+The test suite covers areas such as:
+
+- Data validation
+- Feature engineering
+- Skill graph behavior
+- Learning-path generation
+- Conversational profiling
+- LLM provider abstraction
+- Local fallback behavior
+- Assessment workflows
+- Adaptive rerouting
+- API routes
+- Ranking and evaluation
+
+Run:
 
 ```bash
 pytest
 ```
 
-or:
-
-```bash
-python -m unittest discover tests
-```
-
-The testing workflow covers areas such as:
-
-* Data validation
-* Feature engineering
-* Skill graph behavior
-* Learning-path generation
-* Conversational profiling
-* LLM provider abstraction
-* Local fallback behavior
-* Assessment workflows
-* Adaptive rerouting
-* API routes
-* Ranking and evaluation
-
 ---
 
 # 🚀 Deployment Notes
 
-## Current Implementation
+## Current Persistence
 
 SkillCompass currently uses:
 
@@ -848,168 +749,58 @@ artifacts/live_profiles.json
 
 for local learner-profile persistence.
 
-The current persistence implementation is suitable for:
+This is suitable for:
 
-* Local development
-* Demonstrations
-* Single-instance usage
+- Local development
+- Demonstrations
+- Single-instance usage
 
-It is **not a production database** and is not intended for:
+> ⚠️ **This is not a production database** and is not intended for high-concurrency or distributed multi-instance deployments.
 
-* Multi-instance synchronization
-* High-concurrency workloads
-* Distributed production deployments
+See `DEPLOYMENT.md` for deployment-related documentation.
 
 ---
 
 # 🔮 Future Scope
 
-SkillCompass currently focuses on adaptive learning paths, personalized resource
-ranking, learner-state tracking, assessments, and career-goal guidance.
+Future development can include:
 
-The following areas represent potential future improvements.
-
-## 🗄️ Production-Ready Persistence
-
-Future versions can replace JSON-based local persistence with:
-
-* PostgreSQL for structured application data
-* Redis for caching and shared application state
-* Scalable multi-instance persistence
-* Improved concurrent access handling
-
----
-
-## 📈 Stronger Personalization
-
-Future recommendation models can incorporate richer learner signals such as:
-
-* Historical learning behavior
-* Resource completion patterns
-* Assessment performance over time
-* Explicit learner feedback
-* Long-term career progress
-
-This can help recommendations become increasingly personalized.
-
----
-
-## 🤖 Enhanced AI Assistance
-
-The AI layer can be expanded to support:
-
-* Context-aware learning guidance
-* Personalized study-plan adjustments
-* Learning-resource question answering
-* Improved recommendation explanations
-* Intelligent progress summaries
-
-AI-generated responses should continue to remain grounded in learner state and
-application data.
-
----
-
-## 📚 Expanded Learning Content
-
-Future versions can expand:
-
-* Learning-resource coverage
-* Assessment question banks
-* Skill checkpoints
-* Portfolio projects
-* Skill-to-career mappings
-
-This can improve depth and coverage across supported career paths.
-
----
-
-## 🔄 Continuous Recommendation Improvement
-
-Future versions can introduce stronger feedback loops for improving
-recommendation quality.
-
-Potential improvements include:
-
-* Feedback-driven ranking updates
-* Periodic model retraining
-* Recommendation-quality monitoring
-* A/B testing recommendation strategies
-* Improved adaptive learning metrics
-
----
-
-## ☁️ Scalable Deployment
-
-The application can evolve toward a production architecture with:
-
-* Cloud deployment
-* CI/CD automation
-* Centralized logging
-* Monitoring and observability
-* Performance monitoring
-* Health monitoring
-* Scalable multi-instance deployment
-
----
-
-## 📊 Advanced Learner Analytics
-
-Future dashboards could provide deeper insights into:
-
-* Skill mastery progression
-* Learning consistency
-* Weak skill areas
-* Career readiness
-* Learning milestones
-* Recommendation effectiveness
-
----
-
-## 🎯 Career Readiness Insights
-
-A future version could combine validated skills, completed projects, and
-learning progress to provide higher-level career guidance.
-
-Potential features include:
-
-* Career readiness indicators
-* Skill-gap summaries
-* Portfolio completeness
-* Suggested next milestones
-* Role-specific preparation guidance
+- 🎯 **More supported career goals** and deeper skill-to-career mappings
+- 🗄️ **Production-ready persistence** using technologies such as PostgreSQL and Redis
+- 📚 **Expanded learning resources, assessments, and portfolio projects**
+- 🤖 **Stronger AI assistance** and personalized study guidance
+- 📈 **Improved personalization** using learner feedback and historical progress
+- 🔄 **Continuous recommendation improvement** and periodic model retraining
+- ☁️ **Cloud deployment, CI/CD, monitoring, and observability**
+- 📊 **Advanced learner analytics and career-readiness insights**
+- 🧪 **Recommendation-quality monitoring and A/B testing**
 
 ---
 
 # 🛣️ Roadmap
 
-* [ ] Expand skill-to-career mappings
-* [ ] Increase learning-resource coverage
-* [ ] Expand assessment question banks
-* [ ] Add more portfolio projects
-* [ ] Improve recommendation feedback signals
-* [ ] Add production-ready database persistence
-* [ ] Improve observability and monitoring
-* [ ] Add CI/CD automation
-* [ ] Support scalable multi-instance deployment
+- [ ] Expand supported career goals
+- [ ] Expand skill-to-career mappings
+- [ ] Increase learning-resource coverage
+- [ ] Expand assessment question banks
+- [ ] Add more portfolio projects
+- [ ] Improve recommendation feedback signals
+- [ ] Add production-ready database persistence
+- [ ] Improve monitoring and observability
+- [ ] Add CI/CD automation
+- [ ] Support scalable multi-instance deployment
 
 ---
 
 <div align="center">
 
-# 🧭 Adaptive learning, not static roadmaps.
+## 🧭 Adaptive learning, not static roadmaps.
 
 A learner's career goal may remain the same.
 
-Their **skills, progress, projects, assessment results, and available time**
-do not.
+Their **skills, progress, projects, assessment results, and available time** do not.
 
 ### SkillCompass adapts the learning journey accordingly.
-
-</div>
-
----
-
-<div align="center">
 
 ⭐ If you found SkillCompass interesting, consider giving the repository a star.
 
