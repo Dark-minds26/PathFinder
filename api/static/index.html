@@ -49,7 +49,8 @@
       background: radial-gradient(circle at 10% -10%, #fafffb 0, transparent 35%), var(--bg);
       color: var(--text);
       font: 15px/1.55 "DM Sans", system-ui, sans-serif;
-      -webkit-font-smoothing: antialiased
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior-y: contain
     }
 
     button,
@@ -266,7 +267,8 @@
 
     .chat-panel {
       position: sticky;
-      top: 16px
+      top: 16px;
+      will-change: transform
     }
 
     .chat-body {
@@ -319,7 +321,9 @@
       flex-direction: column;
       gap: 10px;
       padding: 4px 3px 10px;
-      scrollbar-width: thin
+      scrollbar-width: thin;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain
     }
 
     .bubble {
@@ -631,7 +635,8 @@
       padding: 11px;
       border: 1px solid var(--line);
       border-radius: 11px;
-      background: var(--surface-3)
+      background: var(--surface-3);
+      contain: content
     }
 
     .mile .top {
@@ -772,7 +777,8 @@
       border-radius: 14px;
       background: #fff;
       margin-bottom: 16px;
-      box-shadow: 0 2px 8px rgba(23, 33, 27, .03)
+      box-shadow: 0 2px 8px rgba(23, 33, 27, .03);
+      contain: content
     }
 
     .step-top {
@@ -951,8 +957,8 @@
       justify-content: center;
       padding: 18px;
       z-index: 40;
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
     }
 
     .modal-backdrop.open {
@@ -1311,7 +1317,6 @@
         in this browser</span><button id="reset-btn" type="button">Reset this learner</button></footer>
   </div>
 
-  <!-- Custom Reset Learner Modal (Added Here) -->
   <div id="reset-modal" class="modal-backdrop" style="display: none; align-items: center; justify-content: center;">
     <div class="modal" style="max-width: 400px; text-align: center; padding: 24px;">
       <h3 style="margin-top: 0;">Start a fresh demo learner?</h3>
@@ -1428,36 +1433,37 @@
       function renderEmpty(state, message) { const c = stateCopy(state, message); trailBody.innerHTML = `<div class="empty-state"><div class="empty-icon">${c.icon}</div><h4>${esc(c.title)}</h4><p>${esc(c.text)}</p>${state === 'no_goal' ? '<button class="primary" type="button" id="empty-chat-btn">Tell Pathfinder my goal</button>' : ''}</div>`; $('empty-chat-btn')?.addEventListener('click', () => chatInput.focus()); }
 
       function inferType(step) { const t = (step.course_title || '').toLowerCase(); if (/project|build|lab/.test(t)) return 'Project / practice'; return 'Learning resource'; }
-      function renderTrail(path, state, message) {
-        // BUG FIX: If progress is 100%, force the path to be empty to prevent ghost trails.
-        if (currentProfile.progress_pct >= 100) {
-            path = [];
-            state = 'mastered';
-        }
 
-        latestPath = Array.isArray(path) ? path : []; 
+      function renderTrail(path, state, message) {
+        latestPath = Array.isArray(path) ? path : [];
+        if (state === 'ok' && latestPath.length) {
+          savePath();
+        } else if (state === 'mastered' || (state === 'ok' && !latestPath.length)) {
+          // Clear the stale cached path so a reload doesn't resurrect a
+          // completed step that the server no longer considers active.
+          localStorage.removeItem(PATH_KEY);
+        }
         $('trail-status').textContent = state === 'ok' ? `${latestPath.length} adaptive step${latestPath.length === 1 ? '' : 's'} · ranked from current learner state` : `Status · ${state || 'none'}`;
-        
-        if (state !== 'ok' || !latestPath.length) { 
-            renderEmpty(state, message); 
-            // Celebration Check for Empty State
-            const nextIcon = document.querySelector('.next-main .target-icon');
-            if (currentProfile.progress_pct >= 100 || state === 'mastered') {
-                $('next-action-title').textContent = '🎉 Career Goal Mastered!';
-                $('next-action-text').innerHTML = '<strong>Massive Congratulations!</strong> You have validated every required skill for this role. You are officially ready for the industry!';
-                $('next-action-status').textContent = 'Achieved';
-                if (nextIcon) {
-                    nextIcon.textContent = '🏆';
-                    nextIcon.style.background = 'linear-gradient(135deg, #FFD700, #F39C12)';
-                    nextIcon.style.border = 'none';
-                }
-            } else {
-                $('next-action-title').textContent = 'Keep learning';
-                $('next-action-text').textContent = 'Continue building evidence for your goal.';
-                $('next-action-status').textContent = 'Complete';
-                if (nextIcon) { nextIcon.textContent = '🎯'; nextIcon.style.background = ''; nextIcon.style.border = ''; }
+
+        if (state !== 'ok' || !latestPath.length) {
+          renderEmpty(state, message);
+          const nextIcon = document.querySelector('.next-main .target-icon');
+          if (state === 'mastered') {
+            $('next-action-title').textContent = '🎉 Career Goal Mastered!';
+            $('next-action-text').innerHTML = '<strong>Massive Congratulations!</strong> You have validated every required skill for this role. You are officially ready for the industry!';
+            $('next-action-status').textContent = 'Achieved';
+            if (nextIcon) {
+              nextIcon.textContent = '🏆';
+              nextIcon.style.background = 'linear-gradient(135deg, #FFD700, #F39C12)';
+              nextIcon.style.border = 'none';
             }
-            return; 
+          } else {
+            $('next-action-title').textContent = 'Keep learning';
+            $('next-action-text').textContent = 'Continue building evidence for your goal.';
+            $('next-action-status').textContent = 'Complete';
+            if (nextIcon) { nextIcon.textContent = '🎯'; nextIcon.style.background = ''; nextIcon.style.border = ''; }
+          }
+          return;
         }
 
         trailBody.innerHTML = '';
@@ -1482,17 +1488,17 @@
           card.appendChild(actions); row.appendChild(card); list.appendChild(row);
         });
         trailBody.appendChild(list);
-        
-        // Normal Learning State
-        const first = latestPath[0]; 
+
+        const first = latestPath[0];
         const nextIcon = document.querySelector('.next-main .target-icon');
         if (first) {
-            $('next-action-title').textContent = titleize(first.skill_id);
-            $('next-action-text').textContent = `Start with ${first.course_title}. Finish it, then validate the skill with the checkpoint.`; 
-            $('next-action-status').textContent = 'Ready now';
-            if (nextIcon) { nextIcon.textContent = '🎯'; nextIcon.style.background = ''; nextIcon.style.border = ''; }
+          $('next-action-title').textContent = titleize(first.skill_id);
+          $('next-action-text').textContent = `Start with ${first.course_title}. Finish it, then validate the skill with the checkpoint.`;
+          $('next-action-status').textContent = 'Ready now';
+          if (nextIcon) { nextIcon.textContent = '🎯'; nextIcon.style.background = ''; nextIcon.style.border = ''; }
         }
       }
+
       async function refreshHealth() { try { const r = await fetch('/health'); const d = await r.json(); const ok = d.status === 'ok'; $('status-dot').className = 'status-dot ' + (ok ? 'ok' : 'degraded'); $('status-text').textContent = ok ? `AI + ML · ${String(d.llm_backend || 'LLM ready').replace('Client', '')}` : 'Backend degraded'; } catch (e) { $('status-dot').className = 'status-dot degraded'; $('status-text').textContent = 'Backend unreachable'; } }
 
       async function hydrate() {
@@ -1524,65 +1530,62 @@
       }
       async function refreshDashboard() {
         try {
-          const r = await fetch(`/learning/state/${encodeURIComponent(USER_ID)}`); 
-          if (!r.ok) return; 
-          const d = await r.json(); 
-          currentGoalId = d.goal_id || currentGoalId; 
-          currentProfile.progress_pct = d.progress_pct; 
-          updateProgress(d.progress_pct); 
+          const r = await fetch(`/learning/state/${encodeURIComponent(USER_ID)}`);
+          if (!r.ok) return;
+          const d = await r.json();
+          currentGoalId = d.goal_id || currentGoalId;
+          currentProfile.progress_pct = d.progress_pct;
+          updateProgress(d.progress_pct);
           setProfile(Object.assign({}, currentProfile, { goal_id: currentGoalId }));
-          
-          const skillsBox = $('skill-state'); 
-          skillsBox.innerHTML = ''; 
-          const skills = d.skills || []; 
-          $('skill-summary').textContent = skills.length ? `${skills.filter(x => x.status === 'mastered').length}/${skills.length} mastered` : 'No evidence yet'; 
-          
-          if (!skills.length) { 
-            skillsBox.innerHTML = '<div style="color:var(--muted);font-size:12px">Your prerequisite map will appear here.</div>'; 
-          } else { 
-            skills.forEach(x => { 
-              const row = document.createElement('div'); row.className = 'skill-row'; 
-              const n = document.createElement('div'); n.className = 'skill-name'; n.textContent = x.name || titleize(x.skill_id); 
-              const track = document.createElement('div'); track.className = 'skill-track'; 
-              const fill = document.createElement('span'); fill.style.width = Math.max(0, Math.min(100, x.mastery || 0)) + '%'; 
-              track.appendChild(fill); 
-              const stat = document.createElement('small'); stat.textContent = `${Number(x.mastery || 0).toFixed(0)}% · ${x.status}`; 
-              row.append(n, track, stat); skillsBox.appendChild(row); 
-            }); 
+
+          const skillsBox = $('skill-state');
+          skillsBox.innerHTML = '';
+          const skills = d.skills || [];
+          $('skill-summary').textContent = skills.length ? `${skills.filter(x => x.status === 'mastered').length}/${skills.length} mastered` : 'No evidence yet';
+
+          if (!skills.length) {
+            skillsBox.innerHTML = '<div style="color:var(--muted);font-size:12px">Your prerequisite map will appear here.</div>';
+          } else {
+            skills.forEach(x => {
+              const row = document.createElement('div'); row.className = 'skill-row';
+              const n = document.createElement('div'); n.className = 'skill-name'; n.textContent = x.name || titleize(x.skill_id);
+              const track = document.createElement('div'); track.className = 'skill-track';
+              const fill = document.createElement('span'); fill.style.width = Math.max(0, Math.min(100, x.mastery || 0)) + '%';
+              track.appendChild(fill);
+              const stat = document.createElement('small'); stat.textContent = `${Number(x.mastery || 0).toFixed(0)}% · ${x.status}`;
+              row.append(n, track, stat); skillsBox.appendChild(row);
+            });
           }
-          
-          const mb = $('milestone-state'); mb.innerHTML = ''; 
-          (d.milestones || []).forEach(m => { 
-            const mEl = document.createElement('div'); mEl.className = 'mile'; 
-            const top = document.createElement('div'); top.className = 'top'; 
-            const st = document.createElement('strong'); st.textContent = m.title; 
-            const chip = document.createElement('span'); chip.className = 'status ' + (m.complete ? '' : 'degraded'); chip.textContent = m.complete ? 'Complete' : 'In progress'; 
-            top.append(st, chip); 
-            const p = document.createElement('p'); p.textContent = `${(m.skills || []).length} skill${(m.skills || []).length === 1 ? '' : 's'} in this milestone`; 
-            mEl.append(top, p); mb.appendChild(mEl); 
+
+          const mb = $('milestone-state'); mb.innerHTML = '';
+          (d.milestones || []).forEach(m => {
+            const mEl = document.createElement('div'); mEl.className = 'mile';
+            const top = document.createElement('div'); top.className = 'top';
+            const st = document.createElement('strong'); st.textContent = m.title;
+            const chip = document.createElement('span'); chip.className = 'status ' + (m.complete ? '' : 'degraded'); chip.textContent = m.complete ? 'Complete' : 'In progress';
+            top.append(st, chip);
+            const p = document.createElement('p'); p.textContent = `${(m.skills || []).length} skill${(m.skills || []).length === 1 ? '' : 's'} in this milestone`;
+            mEl.append(top, p); mb.appendChild(mEl);
           });
-          
-          // --- DASHBOARD CELEBRATION CHECK ---
-          if (d.progress_pct >= 100) {
-              const nextIcon = document.querySelector('.next-main .target-icon');
-              $('next-action-title').textContent = '🎉 Career Goal Mastered!';
-              $('next-action-text').innerHTML = '<strong>Massive Congratulations!</strong> You have validated every required skill for this role. You are officially ready for the industry!';
-              $('next-action-status').textContent = 'Achieved';
-              if (nextIcon) {
-                  nextIcon.textContent = '🏆';
-                  nextIcon.style.background = 'linear-gradient(135deg, #FFD700, #F39C12)';
-                  nextIcon.style.border = 'none';
-              }
-              
-              // ABSOLUTE WIPE: Delete the Javascript memory array so ghost courses disappear
-              latestPath = [];
-              renderEmpty('mastered', 'You have validated every required skill for this role.');
-              const statusEl = document.getElementById('trail-status');
-              if(statusEl) statusEl.textContent = 'Status · mastered';
+
+          if (d.progress_pct >= 100 && (!latestPath || !latestPath.length)) {
+            const nextIcon = document.querySelector('.next-main .target-icon');
+            $('next-action-title').textContent = '🎉 Career Goal Mastered!';
+            $('next-action-text').innerHTML = '<strong>Massive Congratulations!</strong> You have validated every required skill for this role. You are officially ready for the industry!';
+            $('next-action-status').textContent = 'Achieved';
+            if (nextIcon) {
+              nextIcon.textContent = '🏆';
+              nextIcon.style.background = 'linear-gradient(135deg, #FFD700, #F39C12)';
+              nextIcon.style.border = 'none';
+            }
+          } else if (d.next_best_action) {
+            const n = d.next_best_action;
+            $('next-action-title').textContent = titleize(n.skill_id);
+            $('next-action-text').textContent = n.why || `Start ${n.course_title || 'the next recommended step'}.`;
+            $('next-action-status').textContent = 'Ready now';
           }
         } catch (e) { }
       }
-      // In api/static/index.html
       async function fetchPath(showToast = true) {
         if (!currentGoalId) { renderEmpty('no_goal'); $('trail-status').textContent = 'Goal required'; return false; }
         generateBtn.disabled = true; const old = generateBtn.textContent; generateBtn.textContent = 'Streaming path…';
