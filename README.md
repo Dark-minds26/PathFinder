@@ -802,6 +802,6 @@ Their **skills, progress, projects, assessment results, and available time** do 
 
 ### SkillCompass adapts the learning journey accordingly.
 
-⭐ If you found SkillCompass interesting, consider giving the repository a star.
+⭐ If you found SkillCompass interesting , consider giving the repository a star.
 
 </div>
