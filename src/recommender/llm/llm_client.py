@@ -33,6 +33,10 @@ _PROJECT_LEVEL_GUIDANCE = {
     "advanced": "Production-grade scope: real architecture trade-offs, scalability/reliability concerns, multiple integrated systems, the kind of project a senior engineer would actually ship.",
 }
 
+# Single source of truth for how many questions every backend must
+# generate. Change this once and Groq/OpenAI/Mistral/Local all follow.
+_ASSESSMENT_QUESTION_COUNT = 5
+
 
 def _normalize_level(experience_level: str | None) -> str:
     return (
@@ -48,6 +52,44 @@ def _project_prompt(skill_id: str, level: str) -> str:
     Difficulty guidance: {guidance}
     Return ONLY a JSON object matching this exact schema:
     {{"title": "Project Name", "estimated_hours": 5, "description": "2-3 sentences explaining what they will build, scoped correctly for a {level} learner.", "skills": ["{skill_id}"]}}"""
+
+
+def _assessment_prompt(skill_id: str) -> str:
+    """Shared system prompt for generate_assessment, used identically
+    by Groq, OpenAI, and Mistral so the three real backends produce
+    the same shaped output and only differ in which SDK sends it."""
+    return f"""You are an expert technical interviewer. Generate exactly {_ASSESSMENT_QUESTION_COUNT} multiple-choice diagnostic questions for this skill: {skill_id}
+
+Return ONLY valid JSON in exactly this format:
+
+{{
+    "questions": [
+        {{
+            "id": "q1",
+            "question": "Question text",
+            "options": ["Option A", "Option B", "Option C", "Option D"],
+            "correct_index": 0
+        }}
+    ]
+}}
+
+Return exactly {_ASSESSMENT_QUESTION_COUNT} items in "questions", with "id" values q1..q{_ASSESSMENT_QUESTION_COUNT} in order."""
+
+
+_DYNAMIC_PATH_SYSTEM_PROMPT = """You are an expert career and learning router.
+
+For each skill in MISSING_SKILLS, pick exactly ONE best course_id
+from AVAILABLE_CATALOG.
+
+Return ONLY a valid JSON object with a "path" array.
+
+Each item in "path" must contain:
+- skill_id
+- course_id
+- why
+
+Only use skill_id values from MISSING_SKILLS.
+Only use course_id values that actually exist in AVAILABLE_CATALOG."""
 
 
 class LLMClient(ABC):
@@ -79,6 +121,19 @@ class LLMClient(ABC):
         """Return {"title", "estimated_hours", "description", "skills"}
         for a fresh, unique portfolio project brief for this skill,
         scaled to experience_level (beginner/intermediate/advanced)."""
+
+    @abstractmethod
+    def generate_dynamic_path(
+        self, user_profile: dict, ordered_skills: list[str], available_catalog: dict
+    ):
+        """Route each missing skill to one course from
+        available_catalog, returning a PathResponse."""
+
+    @abstractmethod
+    def generate_assessment(self, skill_id: str) -> dict:
+        """Return {"questions": [...]} with exactly
+        _ASSESSMENT_QUESTION_COUNT multiple-choice diagnostic
+        questions for skill_id."""
 
 
 def _parse_profile_json(raw: str) -> dict:
@@ -284,6 +339,49 @@ def _validate_profile_result(
     return result
 
 
+def _build_dynamic_path_steps(data: dict, ordered_skills: list[str], available_catalog: dict):
+    """Shared PathStep assembly used by Groq/OpenAI/Mistral so the
+    three real backends behave identically once the LLM JSON is back -
+    only the SDK call that produced `data` differs between them."""
+    from api.schemas.path_schema import PathStep
+
+    steps = []
+    for item in data.get("path", []):
+        skill_id = item.get("skill_id")
+        course_id = item.get("course_id")
+
+        if skill_id not in ordered_skills:
+            continue
+
+        cat_list = available_catalog.get(skill_id, [])
+        cat_item = next(
+            (course for course in cat_list if course["course_id"] == course_id), None
+        )
+        if not cat_item:
+            if cat_list:
+                cat_item = cat_list[0]
+            else:
+                continue
+
+        steps.append(
+            PathStep(
+                skill_id=skill_id,
+                course_id=cat_item["course_id"],
+                course_title=cat_item["title"],
+                sequence_order=len(steps) + 1,
+                predicted_score=0.95,
+                duration_hours=5.0,
+                format=(
+                    "interactive" if "project" in cat_item["title"].lower() else "video"
+                ),
+                status="current" if len(steps) == 0 else "locked",
+                why=item.get("why", "Recommended based on your profile."),
+                competency=skill_id,
+            )
+        )
+    return steps
+
+
 class GroqClient(LLMClient):
     """Backed by Groq's OpenAI-compatible chat completions API -
     chosen as the default for demo-time latency (see Phase 1)."""
@@ -330,6 +428,7 @@ class GroqClient(LLMClient):
                 candidate_skills,
             )
         except Exception as e:
+            logging.error(f"Groq profile_turn error: {e}")
             raise RecommenderException(e, sys) from e
 
     def explain(self, course_title: str, goal_title: str, attributions: dict) -> str:
@@ -354,6 +453,7 @@ class GroqClient(LLMClient):
             )
             return resp.choices[0].message.content.strip()
         except Exception as e:
+            logging.error(f"Groq explain error: {e}")
             raise RecommenderException(e, sys) from e
 
     def generate_project(
@@ -373,96 +473,62 @@ class GroqClient(LLMClient):
             )
             return json.loads(resp.choices[0].message.content)
         except Exception as e:
+            logging.error(f"Groq generate_project error: {e}")
             raise RecommenderException(e, sys) from e
 
     def generate_dynamic_path(
         self, user_profile: dict, ordered_skills: list[str], available_catalog: dict
     ):
-        import json
-        from api.schemas.path_schema import PathResponse, PathStep
+        try:
+            import json
+            from api.schemas.path_schema import PathResponse
 
-        system_prompt = """You are an expert career and learning router.
-        For each skill in MISSING_SKILLS, pick exactly ONE best course_id from AVAILABLE_CATALOG.
-        Return ONLY a JSON object with a 'path' array. 
-        Each item in 'path' must have: 'skill_id', 'course_id', and 'why' (a highly personalized 1-sentence reason based on the PROFILE)."""
+            user_content = f"""PROFILE:
+{json.dumps(user_profile)}
 
-        user_content = f"PROFILE: {json.dumps(user_profile)}\nMISSING_SKILLS: {json.dumps(ordered_skills)}\nAVAILABLE_CATALOG: {json.dumps(available_catalog)}"
+MISSING_SKILLS:
+{json.dumps(ordered_skills)}
 
-        resp = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content},
-            ],
-            temperature=0.2,
-            response_format={"type": "json_object"},
-        )
+AVAILABLE_CATALOG:
+{json.dumps(available_catalog)}"""
 
-        data = json.loads(resp.choices[0].message.content)
-        steps = []
-
-        for i, item in enumerate(data.get("path", [])):
-            skill_id = item.get("skill_id")
-            course_id = item.get("course_id")
-
-            cat_list = available_catalog.get(skill_id, [])
-            cat_item = next((c for c in cat_list if c["course_id"] == course_id), None)
-
-            if not cat_item:
-                if cat_list:
-                    cat_item = cat_list[0]
-                else:
-                    continue
-
-            steps.append(
-                PathStep(
-                    skill_id=skill_id,
-                    course_id=cat_item["course_id"],
-                    course_title=cat_item["title"],
-                    sequence_order=i + 1,
-                    predicted_score=0.95,
-                    duration_hours=5.0,
-                    format=(
-                        "interactive"
-                        if "project" in cat_item["title"].lower()
-                        else "video"
-                    ),
-                    status="current" if i == 0 else "locked",
-                    why=item.get("why", "Recommended based on your profile."),
-                    competency=skill_id,
-                )
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": _DYNAMIC_PATH_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content},
+                ],
+                temperature=0.2,
+                response_format={"type": "json_object"},
             )
 
-        return PathResponse(
-            user_id=user_profile.get("user_id", "unknown"),
-            path=steps,
-            source="llm_router",
-            state="ok",
-        )
+            data = json.loads(resp.choices[0].message.content)
+            steps = _build_dynamic_path_steps(data, ordered_skills, available_catalog)
+
+            return PathResponse(
+                user_id=user_profile.get("user_id", "unknown"),
+                path=steps,
+                source="llm_router",
+                state="ok",
+            )
+        except Exception as e:
+            logging.error(f"Groq generate_dynamic_path error: {e}")
+            raise RecommenderException(e, sys) from e
 
     def generate_assessment(self, skill_id: str) -> dict:
-        import json
+        try:
+            import json
 
-        system_prompt = f"""You are an expert technical interviewer. Generate a 3-question multiple-choice diagnostic test for the skill: {skill_id}.
-        Return ONLY a JSON object matching this exact schema:
-        {{
-            "questions": [
-                {{
-                    "id": "q1",
-                    "question": "The actual question text",
-                    "options": ["Option A", "Option B", "Option C", "Option D"],
-                    "correct_index": 1 
-                }}
-            ]
-        }}"""
-
-        resp = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "system", "content": system_prompt}],
-            temperature=0.4,
-            response_format={"type": "json_object"},
-        )
-        return json.loads(resp.choices[0].message.content)
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "system", "content": _assessment_prompt(skill_id)}],
+                temperature=0.4,
+                response_format={"type": "json_object"},
+            )
+            return json.loads(resp.choices[0].message.content)
+        except Exception as e:
+            logging.error(f"Groq generate_assessment error: {e}")
+            raise RecommenderException(e, sys) from e
 
 
 class OpenAIClient(LLMClient):
@@ -511,6 +577,7 @@ class OpenAIClient(LLMClient):
                 candidate_skills,
             )
         except Exception as e:
+            logging.error(f"OpenAI profile_turn error: {e}")
             raise RecommenderException(e, sys) from e
 
     def explain(self, course_title: str, goal_title: str, attributions: dict) -> str:
@@ -535,6 +602,7 @@ class OpenAIClient(LLMClient):
             )
             return resp.choices[0].message.content.strip()
         except Exception as e:
+            logging.error(f"OpenAI explain error: {e}")
             raise RecommenderException(e, sys) from e
 
     def generate_project(
@@ -554,72 +622,62 @@ class OpenAIClient(LLMClient):
             )
             return json.loads(resp.choices[0].message.content)
         except Exception as e:
+            logging.error(f"OpenAI generate_project error: {e}")
             raise RecommenderException(e, sys) from e
 
     def generate_dynamic_path(
         self, user_profile: dict, ordered_skills: list[str], available_catalog: dict
     ):
-        import json
-        from api.schemas.path_schema import PathResponse, PathStep
+        try:
+            import json
+            from api.schemas.path_schema import PathResponse
 
-        system_prompt = """You are an expert career and learning router.
-        For each skill in MISSING_SKILLS, pick exactly ONE best course_id from AVAILABLE_CATALOG.
-        Return ONLY a JSON object with a 'path' array. 
-        Each item in 'path' must have: 'skill_id', 'course_id', and 'why' (a highly personalized 1-sentence reason based on the PROFILE)."""
+            user_content = f"""PROFILE:
+{json.dumps(user_profile)}
 
-        user_content = f"PROFILE: {json.dumps(user_profile)}\nMISSING_SKILLS: {json.dumps(ordered_skills)}\nAVAILABLE_CATALOG: {json.dumps(available_catalog)}"
+MISSING_SKILLS:
+{json.dumps(ordered_skills)}
 
-        resp = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content},
-            ],
-            temperature=0.2,
-            response_format={"type": "json_object"},
-        )
+AVAILABLE_CATALOG:
+{json.dumps(available_catalog)}"""
 
-        data = json.loads(resp.choices[0].message.content)
-        steps = []
-
-        for i, item in enumerate(data.get("path", [])):
-            skill_id = item.get("skill_id")
-            course_id = item.get("course_id")
-
-            cat_list = available_catalog.get(skill_id, [])
-            cat_item = next((c for c in cat_list if c["course_id"] == course_id), None)
-
-            if not cat_item:
-                if cat_list:
-                    cat_item = cat_list[0]
-                else:
-                    continue
-
-            steps.append(
-                PathStep(
-                    skill_id=skill_id,
-                    course_id=cat_item["course_id"],
-                    course_title=cat_item["title"],
-                    sequence_order=i + 1,
-                    predicted_score=0.95,
-                    duration_hours=5.0,
-                    format=(
-                        "interactive"
-                        if "project" in cat_item["title"].lower()
-                        else "video"
-                    ),
-                    status="current" if i == 0 else "locked",
-                    why=item.get("why", "Recommended based on your profile."),
-                    competency=skill_id,
-                )
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": _DYNAMIC_PATH_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content},
+                ],
+                temperature=0.2,
+                response_format={"type": "json_object"},
             )
 
-        return PathResponse(
-            user_id=user_profile.get("user_id", "unknown"),
-            path=steps,
-            source="llm_router",
-            state="ok",
-        )
+            data = json.loads(resp.choices[0].message.content)
+            steps = _build_dynamic_path_steps(data, ordered_skills, available_catalog)
+
+            return PathResponse(
+                user_id=user_profile.get("user_id", "unknown"),
+                path=steps,
+                source="llm_router",
+                state="ok",
+            )
+        except Exception as e:
+            logging.error(f"OpenAI generate_dynamic_path error: {e}")
+            raise RecommenderException(e, sys) from e
+
+    def generate_assessment(self, skill_id: str) -> dict:
+        try:
+            import json
+
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "system", "content": _assessment_prompt(skill_id)}],
+                temperature=0.4,
+                response_format={"type": "json_object"},
+            )
+            return json.loads(resp.choices[0].message.content)
+        except Exception as e:
+            logging.error(f"OpenAI generate_assessment error: {e}")
+            raise RecommenderException(e, sys) from e
 
 
 _SKILL_NAME_STOPWORDS = {"basics", "fundamentals", "advanced", "and", "with"}
@@ -900,6 +958,56 @@ class LocalStubLLMClient(LLMClient):
             state="ok",
         )
 
+    def generate_assessment(self, skill_id: str) -> dict:
+        """Deterministic 3-question stand-in - no LLM call, so the
+        questions are generic rather than skill-specific, but the
+        shape matches every real backend exactly."""
+        label = skill_id.replace("_", " ").replace("-", " ").strip() or "this skill"
+        questions = []
+        templates = [
+            (
+                f"Which statement best describes your familiarity with {label}?",
+                [
+                    f"I have built something real using {label}",
+                    f"I understand the core concepts of {label} but haven't applied them",
+                    f"I've only briefly encountered {label}",
+                    f"I have no exposure to {label}",
+                ],
+                0,
+            ),
+            (
+                f"When working with {label}, what is generally the most important first step?",
+                [
+                    "Understanding the fundamentals before diving into advanced usage",
+                    "Skipping straight to advanced techniques",
+                    "Avoiding any documentation or reference material",
+                    "Memorizing syntax without understanding concepts",
+                ],
+                0,
+            ),
+            (
+                f"What is a common mistake beginners make when learning {label}?",
+                [
+                    "Trying to learn everything at once instead of building incrementally",
+                    "Practicing consistently over time",
+                    "Reviewing fundamentals before moving to advanced topics",
+                    "Asking for feedback on their work",
+                ],
+                0,
+            ),
+        ]
+        for i in range(_ASSESSMENT_QUESTION_COUNT):
+            prompt, options, correct_index = templates[i % len(templates)]
+            questions.append(
+                {
+                    "id": f"q{i + 1}",
+                    "question": prompt,
+                    "options": options,
+                    "correct_index": correct_index,
+                }
+            )
+        return {"questions": questions}
+
 
 class MistralClient(LLMClient):
     """Mistral backend using the official mistralai SDK (v1.x)."""
@@ -1004,40 +1112,21 @@ class MistralClient(LLMClient):
     ):
         try:
             import json
-            from api.schemas.path_schema import PathResponse, PathStep
+            from api.schemas.path_schema import PathResponse
 
-            system_prompt = """
-You are an expert career and learning router.
-
-For each skill in MISSING_SKILLS, pick exactly ONE best course_id
-from AVAILABLE_CATALOG.
-
-Return ONLY a valid JSON object with a "path" array.
-
-Each item in "path" must contain:
-- skill_id
-- course_id
-- why
-
-Only use skill_id values from MISSING_SKILLS.
-Only use course_id values that actually exist in AVAILABLE_CATALOG.
-"""
-
-            user_content = f"""
-PROFILE:
+            user_content = f"""PROFILE:
 {json.dumps(user_profile)}
 
 MISSING_SKILLS:
 {json.dumps(ordered_skills)}
 
 AVAILABLE_CATALOG:
-{json.dumps(available_catalog)}
-"""
+{json.dumps(available_catalog)}"""
 
             response = self.client.chat.complete(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": system_prompt},
+                    {"role": "system", "content": _DYNAMIC_PATH_SYSTEM_PROMPT},
                     {"role": "user", "content": user_content},
                 ],
                 temperature=0.2,
@@ -1046,44 +1135,7 @@ AVAILABLE_CATALOG:
 
             raw = response.choices[0].message.content
             data = json.loads(raw)
-            steps = []
-
-            for i, item in enumerate(data.get("path", [])):
-                skill_id = item.get("skill_id")
-                course_id = item.get("course_id")
-
-                if skill_id not in ordered_skills:
-                    continue
-
-                cat_list = available_catalog.get(skill_id, [])
-                cat_item = next(
-                    (course for course in cat_list if course["course_id"] == course_id),
-                    None,
-                )
-                if not cat_item:
-                    if cat_list:
-                        cat_item = cat_list[0]
-                    else:
-                        continue
-
-                steps.append(
-                    PathStep(
-                        skill_id=skill_id,
-                        course_id=cat_item["course_id"],
-                        course_title=cat_item["title"],
-                        sequence_order=len(steps) + 1,
-                        predicted_score=0.95,
-                        duration_hours=5.0,
-                        format=(
-                            "interactive"
-                            if "project" in cat_item["title"].lower()
-                            else "video"
-                        ),
-                        status="current" if len(steps) == 0 else "locked",
-                        why=item.get("why", "Recommended based on your profile."),
-                        competency=skill_id,
-                    )
-                )
+            steps = _build_dynamic_path_steps(data, ordered_skills, available_catalog)
 
             return PathResponse(
                 user_id=user_profile.get("user_id", "unknown"),
@@ -1099,36 +1151,9 @@ AVAILABLE_CATALOG:
         try:
             import json
 
-            system_prompt = f"""
-You are an expert technical interviewer.
-
-Generate exactly 5 multiple-choice diagnostic questions
-for this skill:
-
-{skill_id}
-
-Return ONLY valid JSON in exactly this format:
-
-{{
-    "questions": [
-        {{
-            "id": "q1",
-            "question": "Question text",
-            "options": [
-                "Option A",
-                "Option B",
-                "Option C",
-                "Option D"
-            ],
-            "correct_index": 0
-        }}
-    ]
-}}
-"""
-
             response = self.client.chat.complete(
                 model=self.model,
-                messages=[{"role": "system", "content": system_prompt}],
+                messages=[{"role": "system", "content": _assessment_prompt(skill_id)}],
                 temperature=0.4,
                 response_format={"type": "json_object"},
             )
