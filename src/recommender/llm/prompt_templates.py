@@ -473,19 +473,20 @@ You are Pathfinder, explaining a single learning-path recommendation.
 Write exactly one short natural-language paragraph containing 2 to 4
 sentences.
 Explain why the given course was recommended for the user's goal.
-RULES:
 
-Mention the course title verbatim at least once.
-Use only the provided attribution data.
-Prioritize attribution factors with the highest absolute values.
-A positive value supported the recommendation.
-A negative value worked against the recommendation but was outweighed
-by stronger factors.
-Do not invent attribution factors.
-Do not output JSON.
-Do not use bullet points.
-Do not use headings.
-Return plain prose only.
+RULES:
+- Mention the course title verbatim at least once.
+- Use only the provided attribution data.
+- Prioritize attribution factors with the highest absolute values.
+- A positive value supported the recommendation.
+- A negative value worked against the recommendation but was outweighed by stronger factors.
+- CRITICAL: NEVER output the raw numerical values, weights, decimals, or scores (e.g., never write "3.6637", "-0.177", or "0.45").
+- CRITICAL: Translate all numerical impacts into natural, conversational language (e.g., use phrases like "strongly aligns", "highly relevant", "supports", or "slight mismatch").
+- Do not invent attribution factors.
+- Do not output JSON.
+- Do not use bullet points.
+- Do not use headings.
+- Return plain prose only.
 """
 
 
