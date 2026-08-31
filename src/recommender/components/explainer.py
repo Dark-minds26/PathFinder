@@ -6,7 +6,10 @@ import numpy as np
 
 from src.recommender.constants import FEATURE_COLUMNS
 from src.recommender.entity.config_entity import ExplainerConfig
-from src.recommender.entity.artifact_entity import ModelEvaluatorArtifact, ExplainerArtifact
+from src.recommender.entity.artifact_entity import (
+    ModelEvaluatorArtifact,
+    ExplainerArtifact,
+)
 from src.recommender.exception import RecommenderException
 from src.recommender.logger import logging
 from src.recommender.utils.main_utils import load_object
@@ -83,13 +86,17 @@ class Explainer:
                 base_explainer = shap.TreeExplainer(estimator)
                 backend = "shap-tree-explainer"
             else:
-                logging.info("shap not installed - falling back to baseline attribution")
+                logging.info(
+                    "shap not installed - falling back to baseline attribution"
+                )
                 baseline = np.zeros(len(FEATURE_COLUMNS))
                 base_explainer = BaselineAttributionExplainer(model, baseline)
                 backend = "baseline-attribution-fallback"
 
             explainer = ConfiguredExplainer(base_explainer, self.config.top_k_features)
-            Path(self.config.explainer_object_path).parent.mkdir(parents=True, exist_ok=True)
+            Path(self.config.explainer_object_path).parent.mkdir(
+                parents=True, exist_ok=True
+            )
             with open(self.config.explainer_object_path, "wb") as f:
                 pickle.dump(explainer, f)
 

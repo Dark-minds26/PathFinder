@@ -26,7 +26,9 @@ class TestSkillGraphTraversal(unittest.TestCase):
         ordered = get_missing_skills_ordered(
             self.graph, possessed_skills=set(), required_skills={"ml", "data_modeling"}
         )
-        self.assertEqual(set(ordered), {"python", "statistics", "sql", "ml", "data_modeling"})
+        self.assertEqual(
+            set(ordered), {"python", "statistics", "sql", "ml", "data_modeling"}
+        )
         self.assertLess(ordered.index("python"), ordered.index("statistics"))
         self.assertLess(ordered.index("python"), ordered.index("sql"))
         self.assertLess(ordered.index("statistics"), ordered.index("ml"))
@@ -34,7 +36,9 @@ class TestSkillGraphTraversal(unittest.TestCase):
 
     def test_already_possessed_skills_are_excluded(self):
         ordered = get_missing_skills_ordered(
-            self.graph, possessed_skills={"python", "sql"}, required_skills={"ml", "data_modeling"}
+            self.graph,
+            possessed_skills={"python", "sql"},
+            required_skills={"ml", "data_modeling"},
         )
         # sql is possessed, but data_modeling (its dependent) is still needed
         self.assertEqual(set(ordered), {"statistics", "ml", "data_modeling"})
@@ -50,6 +54,7 @@ class TestSkillGraphTraversal(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 
 class TestCanonicalMasteryBoundaries(unittest.TestCase):
     def test_validated_mastery_is_a_hard_boundary(self):

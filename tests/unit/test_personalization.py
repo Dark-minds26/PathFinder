@@ -12,6 +12,7 @@ class DummyTFIDF:
 
 class DummySVD:
     n_components = 2
+
     def transform(self, x):
         return np.zeros((x.shape[0], 2))
 
@@ -26,7 +27,10 @@ def make_ctx(style="visual", hours=8):
         goal_required_ids={"g": {"s"}},
         tfidf=DummyTFIDF(),
         svd=DummySVD(),
-        course_text_emb_by_id={"video": np.array([1.0, 0.0]), "text": np.array([1.0, 0.0])},
+        course_text_emb_by_id={
+            "video": np.array([1.0, 0.0]),
+            "text": np.array([1.0, 0.0]),
+        },
         popularity_by_course={"video": 0.5, "text": 0.5},
         difficulty_by_course={"video": "beginner", "text": "beginner"},
         duration_by_course={"video": 4, "text": 16},
@@ -64,8 +68,12 @@ class TestPersonalizationFeatures(unittest.TestCase):
         reading_feats = [
             reading_ctx.build_features("u", cid, {"s"}) for cid in ("video", "text")
         ]
-        visual_scores = model.predict(np.array([[f[c] for c in FEATURE_COLUMNS] for f in visual_feats]))
-        reading_scores = model.predict(np.array([[f[c] for c in FEATURE_COLUMNS] for f in reading_feats]))
+        visual_scores = model.predict(
+            np.array([[f[c] for c in FEATURE_COLUMNS] for f in visual_feats])
+        )
+        reading_scores = model.predict(
+            np.array([[f[c] for c in FEATURE_COLUMNS] for f in reading_feats])
+        )
         self.assertEqual(int(np.argmax(visual_scores)), 0)
         self.assertEqual(int(np.argmax(reading_scores)), 1)
 
@@ -90,13 +98,17 @@ class TestPersonalizationFeatures(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 
+
 class TestModelXAIContract(unittest.TestCase):
     def test_model_feature_weights_are_normalized(self):
         from src.recommender.components.model_trainer import RankerModel
+
         class Estimator:
             feature_importances_ = np.array([1.0, 2.0, 0.0])
+
             def predict(self, X):
                 return np.zeros(len(X))
+
         model = RankerModel("sklearn-gbr-fallback", Estimator(), ["a", "b", "c"])
         weights = model.feature_weights()
         self.assertEqual(set(weights), {"a", "b", "c"})

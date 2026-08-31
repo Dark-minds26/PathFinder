@@ -1,4 +1,5 @@
 """Universal Prompt contracts for profiling and grounded explanations."""
+
 import json
 
 # ============================================================
@@ -392,6 +393,7 @@ Use exactly this structure:
 }
 """
 
+
 # ============================================================
 # 2. BUILD PROFILING USER CONTENT
 # ============================================================
@@ -411,6 +413,7 @@ def build_profiling_user_content(
         f"USER_MESSAGE:\n"
         f"{user_message}"
     )
+
 
 # ============================================================
 # 3. UNIVERSAL PATH GENERATION PROMPT
@@ -446,6 +449,7 @@ Never mention a course that is not present in AVAILABLE_CATALOG.
 Return only valid JSON.
 """
 
+
 def build_path_generation_content(
     user_profile: dict,
     ordered_skills: list[str],
@@ -459,6 +463,7 @@ def build_path_generation_content(
         f"AVAILABLE_CATALOG:\n"
         f"{json.dumps(available_catalog)}"
     )
+
 
 # ============================================================
 # 4. EXPLANATION PROMPT
@@ -483,6 +488,7 @@ Do not use headings.
 Return plain prose only.
 """
 
+
 def build_explanation_user_content(
     course_title: str,
     goal_title: str,
@@ -494,6 +500,7 @@ def build_explanation_user_content(
         f"ATTRIBUTIONS: "
         f"{json.dumps(_attributions_to_plain(attributions))}"
     )
+
 
 # ============================================================
 # 5. NORMALIZE ATTRIBUTIONS
@@ -514,11 +521,7 @@ def _attributions_to_plain(attributions):
     try:
         for item in attributions:
             if isinstance(item, dict):
-                name = (
-                    item.get("feature")
-                    or item.get("name")
-                    or item.get("skill")
-                )
+                name = item.get("feature") or item.get("name") or item.get("skill")
                 if name is None and item:
                     name = next(iter(item.values()), None)
 
@@ -540,6 +543,7 @@ def _attributions_to_plain(attributions):
         pass
 
     return pairs
+
 
 # ============================================================
 # 6. LOCAL STUB EXPLANATION
@@ -586,9 +590,7 @@ def template_explanation(
                 "by stronger factors"
             )
 
-        explanations.append(
-            f"{humanize(name)} ({value:+.2f}) {direction}"
-        )
+        explanations.append(f"{humanize(name)} ({value:+.2f}) {direction}")
 
     factor_text = "; ".join(explanations)
 

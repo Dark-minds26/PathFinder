@@ -5,6 +5,7 @@ calls the exact same code at serving time to score candidates. Pulling
 it into one place is what guarantees the two can't drift apart - a
 common, easy-to-miss source of training/serving skew.
 """
+
 import numpy as np
 
 from src.recommender.components.skill_graph_builder import get_missing_skills_ordered
@@ -116,8 +117,10 @@ class FeatureContext:
         lookups entirely - how a user profiled live through /profile/chat
         (not part of the frozen Phase 2 training data) still gets a real
         path generated from their actual ProfileStore record."""
-        possessed = set(possessed_skills) if possessed_skills is not None else set(
-            self.possessed_by_user.get(user_id, set())
+        possessed = (
+            set(possessed_skills)
+            if possessed_skills is not None
+            else set(self.possessed_by_user.get(user_id, set()))
         )
         if exclude_mastered:
             possessed = possessed - set(exclude_mastered)
@@ -126,7 +129,11 @@ class FeatureContext:
         return get_missing_skills_ordered(self.graph, possessed, required)
 
     def _skill_query_embedding(self, skill_ids_subset) -> np.ndarray:
-        names = [self.skill_name_by_id[s] for s in skill_ids_subset if s in self.skill_name_by_id]
+        names = [
+            self.skill_name_by_id[s]
+            for s in skill_ids_subset
+            if s in self.skill_name_by_id
+        ]
         text = " ".join(names) if names else ""
         return self.svd.transform(self.tfidf.transform([text]))[0]
 
@@ -147,7 +154,9 @@ class FeatureContext:
         g_vec = self.goal_vectors.get(resolved_goal, np.zeros(self.n_skills))
         c_skills = {s for s, _w in self.course_skills.get(course_id, [])}
 
-        skill_gap_match = len(c_skills & missing_set) / len(c_skills) if c_skills else 0.0
+        skill_gap_match = (
+            len(c_skills & missing_set) / len(c_skills) if c_skills else 0.0
+        )
         denom = (np.linalg.norm(c_vec) * np.linalg.norm(g_vec)) or 1.0
         goal_alignment = float(np.dot(c_vec, g_vec) / denom)
 
@@ -157,21 +166,35 @@ class FeatureContext:
         difficulty_fit = 1.0 - abs(d_course - d_user) / 2.0
 
         popularity = float(
-            popularity_override if popularity_override is not None else self.popularity_by_course.get(course_id, 0.5)
+            popularity_override
+            if popularity_override is not None
+            else self.popularity_by_course.get(course_id, 0.5)
         )
         duration = float(self.duration_by_course.get(course_id, 0) or 0)
         normalized_course_duration = duration / self.max_duration
 
-        style_to_format = {"visual": "video", "reading": "text", "practice": "interactive"}
+        style_to_format = {
+            "visual": "video",
+            "reading": "text",
+            "practice": "interactive",
+        }
         resolved_style = learning_style or self.user_learning_style.get(user_id)
         target_format = self.format_by_course.get(course_id)
-        learning_style_fit = 0.5 if resolved_style is None else (
-            1.0 if target_format == style_to_format.get(resolved_style) else 0.0
+        learning_style_fit = (
+            0.5
+            if resolved_style is None
+            else (1.0 if target_format == style_to_format.get(resolved_style) else 0.0)
         )
 
-        raw_weekly_hours = weekly_hours if weekly_hours is not None else self.user_weekly_hours.get(user_id)
+        raw_weekly_hours = (
+            weekly_hours
+            if weekly_hours is not None
+            else self.user_weekly_hours.get(user_id)
+        )
         try:
-            weekly_hours = float(raw_weekly_hours) if raw_weekly_hours is not None else None
+            weekly_hours = (
+                float(raw_weekly_hours) if raw_weekly_hours is not None else None
+            )
         except (TypeError, ValueError):
             weekly_hours = None
         if weekly_hours is None:
@@ -183,8 +206,12 @@ class FeatureContext:
         else:
             time_fit = min(1.0, weekly_hours / duration)
 
-        resolved_interests = interests if interests is not None else self.user_interests.get(user_id, [])
-        resolved_interests = {str(x).strip().lower() for x in (resolved_interests or [])}
+        resolved_interests = (
+            interests if interests is not None else self.user_interests.get(user_id, [])
+        )
+        resolved_interests = {
+            str(x).strip().lower() for x in (resolved_interests or [])
+        }
         skill_name = self.skill_name_by_id.get(next(iter(c_skills), ""), "").lower()
         interest_keywords = {
             "generative_ai": {"llm", "rag", "deep learning", "pytorch", "ai"},
@@ -198,10 +225,16 @@ class FeatureContext:
             keywords = interest_keywords.get(interest, set())
             if interest in skill_name or any(k in skill_name for k in keywords):
                 matched += 1
-        interest_fit = (matched / len(resolved_interests)) if resolved_interests else 0.5
+        interest_fit = (
+            (matched / len(resolved_interests)) if resolved_interests else 0.5
+        )
 
         c_emb = self.course_text_emb_by_id.get(course_id)
-        q_emb = self._skill_query_embedding(missing_set) if missing_set else np.zeros(self._n_components)
+        q_emb = (
+            self._skill_query_embedding(missing_set)
+            if missing_set
+            else np.zeros(self._n_components)
+        )
         if c_emb is None:
             content_similarity = 0.0
         else:

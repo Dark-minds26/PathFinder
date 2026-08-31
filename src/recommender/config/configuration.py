@@ -28,8 +28,12 @@ class ConfigurationManager:
         config_file_path: str = CONFIG_FILE_PATH,
         params_file_path: str = PARAMS_FILE_PATH,
     ) -> None:
-        self.config = read_yaml(config_file_path) if os.path.exists(config_file_path) else {}
-        self.params = read_yaml(params_file_path) if os.path.exists(params_file_path) else {}
+        self.config = (
+            read_yaml(config_file_path) if os.path.exists(config_file_path) else {}
+        )
+        self.params = (
+            read_yaml(params_file_path) if os.path.exists(params_file_path) else {}
+        )
 
     def get_data_ingestion_config(self) -> DataIngestionConfig:
         return DataIngestionConfig(
@@ -40,40 +44,52 @@ class ConfigurationManager:
     def get_data_validation_config(self) -> DataValidationConfig:
         return DataValidationConfig(
             schema_file_path=self.config.get("schema_file_path", SCHEMA_FILE_PATH),
-            validation_report_path=os.path.join(ARTIFACT_DIR, "validation", "report.yaml"),
+            validation_report_path=os.path.join(
+                ARTIFACT_DIR, "validation", "report.yaml"
+            ),
         )
 
     def get_data_transformation_config(self) -> DataTransformationConfig:
         return DataTransformationConfig(
             transformed_data_dir=os.path.join(ARTIFACT_DIR, "transformed"),
-            preprocessor_object_path=os.path.join(ARTIFACT_DIR, "transformed", "preprocessor.pkl"),
+            preprocessor_object_path=os.path.join(
+                ARTIFACT_DIR, "transformed", "preprocessor.pkl"
+            ),
             svd_components=self.params.get("svd_components", 24),
             graph_object_path=os.path.join(ARTIFACT_DIR, "graph", "skill_dag.pkl"),
         )
 
     def get_skill_graph_config(self) -> SkillGraphConfig:
         return SkillGraphConfig(
-            prerequisite_edges_path=os.path.join(ARTIFACT_DIR, "raw_data", "skill_prerequisites.csv"),
+            prerequisite_edges_path=os.path.join(
+                ARTIFACT_DIR, "raw_data", "skill_prerequisites.csv"
+            ),
             skills_path=os.path.join(ARTIFACT_DIR, "raw_data", "skills.csv"),
             graph_cache_path=os.path.join(ARTIFACT_DIR, "graph", "skill_dag.pkl"),
         )
 
     def get_model_trainer_config(self) -> ModelTrainerConfig:
         return ModelTrainerConfig(
-            candidate_model_path=os.path.join(ARTIFACT_DIR, "model", "model_candidate.pkl"),
+            candidate_model_path=os.path.join(
+                ARTIFACT_DIR, "model", "model_candidate.pkl"
+            ),
             model_params=self.params.get("model_params", {}),
         )
 
     def get_model_evaluator_config(self) -> ModelEvaluatorConfig:
         return ModelEvaluatorConfig(
-            evaluation_report_path=os.path.join(ARTIFACT_DIR, "evaluation", "report.yaml"),
+            evaluation_report_path=os.path.join(
+                ARTIFACT_DIR, "evaluation", "report.yaml"
+            ),
             score_threshold=self.params.get("score_threshold", 0.05),
             accepted_model_path=os.path.join(ARTIFACT_DIR, "model", "model.pkl"),
         )
 
     def get_explainer_config(self) -> ExplainerConfig:
         return ExplainerConfig(
-            explainer_object_path=os.path.join(ARTIFACT_DIR, "explainer", "explainer.pkl"),
+            explainer_object_path=os.path.join(
+                ARTIFACT_DIR, "explainer", "explainer.pkl"
+            ),
             top_k_features=self.params.get("top_k_features", 5),
         )
 
@@ -81,9 +97,15 @@ class ConfigurationManager:
         return PathGeneratorConfig(
             max_path_length=self.params.get("max_path_length", 20),
             min_confidence=self.params.get("min_confidence", 0.5),
-            candidate_courses_per_skill=self.params.get("candidate_courses_per_skill", 5),
+            candidate_courses_per_skill=self.params.get(
+                "candidate_courses_per_skill", 5
+            ),
             graph_path=os.path.join(ARTIFACT_DIR, "graph", "skill_dag.pkl"),
             model_path=os.path.join(ARTIFACT_DIR, "model", "model.pkl"),
-            preprocessor_path=os.path.join(ARTIFACT_DIR, "transformed", "preprocessor.pkl"),
-            bridge_course_skill_path=os.path.join(ARTIFACT_DIR, "raw_data", "bridge_course_skill.csv"),
+            preprocessor_path=os.path.join(
+                ARTIFACT_DIR, "transformed", "preprocessor.pkl"
+            ),
+            bridge_course_skill_path=os.path.join(
+                ARTIFACT_DIR, "raw_data", "bridge_course_skill.csv"
+            ),
         )

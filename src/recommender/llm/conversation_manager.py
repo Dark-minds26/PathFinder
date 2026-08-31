@@ -2,9 +2,6 @@
 
 import sys
 from src.recommender.exception import RecommenderException
-from src.recommender.llm.llm_client import LLMClient
-from src.recommender.llm.profile_store import ProfileStore
-from src.recommender.llm.rag_engine import RAGEngine
 from src.recommender.goal_intelligence import normalize_goal
 
 RECOMMENDATION_FIELDS = (

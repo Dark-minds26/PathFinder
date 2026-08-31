@@ -7,6 +7,7 @@ from src.recommender.config.configuration import ConfigurationManager
 
 router = APIRouter()
 
+
 @router.get("/{course_id}/{user_id}")
 def explain_recommendation(course_id: str, user_id: str):
     generator = get_path_generator()
@@ -18,7 +19,12 @@ def explain_recommendation(course_id: str, user_id: str):
 
     store = get_profile_store()
     profile = store.get(user_id)
-    goal = profile.get("goal_id", "your target role").replace("dynamic:", "").replace("_", " ").title()
+    goal = (
+        profile.get("goal_id", "your target role")
+        .replace("dynamic:", "")
+        .replace("_", " ")
+        .title()
+    )
 
     cfg = ConfigurationManager()
     explainer = load_object(cfg.get_explainer_config().explainer_object_path)
@@ -31,7 +37,12 @@ def explain_recommendation(course_id: str, user_id: str):
         "interests": profile.get("interests"),
     }
     attributions = compute_attributions(
-        generator.ctx, generator.model, explainer, user_id, course_id, **overrides,
+        generator.ctx,
+        generator.model,
+        explainer,
+        user_id,
+        course_id,
+        **overrides,
     )
 
     llm = get_llm_client()

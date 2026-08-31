@@ -58,9 +58,13 @@ class ModelEvaluator:
         try:
             logging.info("Evaluating trained candidate model on the held-out user set")
             model = load_object(self.model_trainer_artifact.trained_model_path)
-            eval_df = pd.read_csv(self.data_transformation_artifact.evaluation_data_path)
+            eval_df = pd.read_csv(
+                self.data_transformation_artifact.evaluation_data_path
+            )
             if eval_df.empty or eval_df["user_id"].nunique() < 1:
-                raise ValueError("Evaluation set is empty; refusing to evaluate or promote the model")
+                raise ValueError(
+                    "Evaluation set is empty; refusing to evaluate or promote the model"
+                )
 
             X_eval = eval_df[FEATURE_COLUMNS]
             eval_df = eval_df.assign(pred=model.predict(X_eval))
@@ -92,18 +96,29 @@ class ModelEvaluator:
             is_accepted = metrics["ndcg_at_k"] >= self.config.score_threshold
             metrics["is_model_accepted"] = bool(is_accepted)
 
-            Path(self.config.evaluation_report_path).parent.mkdir(parents=True, exist_ok=True)
+            Path(self.config.evaluation_report_path).parent.mkdir(
+                parents=True, exist_ok=True
+            )
             write_yaml(self.config.evaluation_report_path, metrics, replace=True)
 
             if is_accepted:
-                Path(self.config.accepted_model_path).parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(self.model_trainer_artifact.trained_model_path, self.config.accepted_model_path)
-                logging.info("Model accepted and promoted to %s", self.config.accepted_model_path)
+                Path(self.config.accepted_model_path).parent.mkdir(
+                    parents=True, exist_ok=True
+                )
+                shutil.copy2(
+                    self.model_trainer_artifact.trained_model_path,
+                    self.config.accepted_model_path,
+                )
+                logging.info(
+                    "Model accepted and promoted to %s", self.config.accepted_model_path
+                )
                 best_model_path = self.config.accepted_model_path
             else:
                 logging.error(
                     "Model rejected: NDCG@%d=%.4f is below threshold %.4f; candidate will not be promoted",
-                    K, metrics["ndcg_at_k"], self.config.score_threshold,
+                    K,
+                    metrics["ndcg_at_k"],
+                    self.config.score_threshold,
                 )
                 best_model_path = self.model_trainer_artifact.trained_model_path
 

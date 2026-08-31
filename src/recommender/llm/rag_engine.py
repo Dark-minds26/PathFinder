@@ -30,21 +30,15 @@ class RAGEngine:
             skills_df = pd.read_csv(skills_path)
             goals_df = pd.read_csv(goals_path)
 
-            self._skills = skills_df[
-                ["skill_id", "skill_name"]
-            ].to_dict("records")
+            self._skills = skills_df[["skill_id", "skill_name"]].to_dict("records")
 
-            self._goals = goals_df[
-                ["goal_id", "title"]
-            ].to_dict("records")
+            self._goals = goals_df[["goal_id", "title"]].to_dict("records")
 
             self._skill_emb = self.svd.transform(
                 self.tfidf.transform(skills_df["skill_name"])
             )
 
-            self._goal_emb = self.svd.transform(
-                self.tfidf.transform(goals_df["title"])
-            )
+            self._goal_emb = self.svd.transform(self.tfidf.transform(goals_df["title"]))
 
             logging.info(
                 f"RAGEngine ready: {len(self._skills)} skills, "
@@ -55,9 +49,7 @@ class RAGEngine:
             raise RecommenderException(e, sys) from e
 
     def _embed(self, text: str) -> np.ndarray:
-        return self.svd.transform(
-            self.tfidf.transform([text])
-        )[0]
+        return self.svd.transform(self.tfidf.transform([text]))[0]
 
     @staticmethod
     def _normalize(text: str) -> str:
@@ -74,7 +66,6 @@ class RAGEngine:
         emb_matrix: np.ndarray,
         top_k: int,
     ) -> list[dict]:
-
         if len(candidates) == 0:
             return []
 
@@ -83,11 +74,9 @@ class RAGEngine:
         row_norms = np.linalg.norm(emb_matrix, axis=1)
         row_norms[row_norms == 0] = 1.0
 
-        sims = (
-            emb_matrix @ query_vec
-        ) / (row_norms * q_norm)
+        sims = (emb_matrix @ query_vec) / (row_norms * q_norm)
 
-        order = np.argsort(-sims)[:min(top_k, len(candidates))]
+        order = np.argsort(-sims)[: min(top_k, len(candidates))]
 
         return [candidates[i] for i in order]
 
@@ -96,7 +85,6 @@ class RAGEngine:
         query: str,
         top_k: int = 8,
     ) -> list[dict]:
-
         try:
             return self._top_k(
                 self._embed(query),
@@ -113,7 +101,6 @@ class RAGEngine:
         query: str,
         top_k: int = 3,
     ) -> list[dict]:
-
         try:
             if not self._goals:
                 return []
@@ -128,9 +115,7 @@ class RAGEngine:
             )
             row_norms[row_norms == 0] = 1.0
 
-            sims = (
-                self._goal_emb @ query_vec
-            ) / (row_norms * q_norm)
+            sims = (self._goal_emb @ query_vec) / (row_norms * q_norm)
 
             query_norm = self._normalize(query)
 
@@ -141,7 +126,7 @@ class RAGEngine:
                 if title_norm and title_norm in query_norm:
                     sims[i] += 1.0
 
-            order = np.argsort(-sims)[:min(top_k, len(self._goals))]
+            order = np.argsort(-sims)[: min(top_k, len(self._goals))]
 
             return [self._goals[i] for i in order]
 
@@ -150,21 +135,13 @@ class RAGEngine:
 
     def canonical_goal(self, goal_id: str) -> dict | None:
         return next(
-            (
-                g
-                for g in self._goals
-                if g["goal_id"] == goal_id
-            ),
+            (g for g in self._goals if g["goal_id"] == goal_id),
             None,
         )
 
     def canonical_skill(self, skill_id: str) -> dict | None:
         return next(
-            (
-                s
-                for s in self._skills
-                if s["skill_id"] == skill_id
-            ),
+            (s for s in self._skills if s["skill_id"] == skill_id),
             None,
         )
 
@@ -174,7 +151,6 @@ class RAGEngine:
         goals: list[dict],
         skills: list[dict],
     ) -> tuple[list[dict], list[dict]]:
-
         """Keep already-confirmed canonical ids available to later turns."""
 
         goal = (

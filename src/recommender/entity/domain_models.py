@@ -3,6 +3,7 @@
 These models are intentionally independent of FastAPI request/response schemas so the
 same contracts can be reused by the graph, recommender, persistence and adapters.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -82,12 +83,20 @@ class User(BaseModel):
     @property
     def validated_skill_ids(self) -> set[str]:
         """Skills currently treated as mastered/hard boundaries."""
-        return {sid for sid, record in self.mastery.items() if record.status == "validated"}
+        return {
+            sid for sid, record in self.mastery.items() if record.status == "validated"
+        }
 
     @property
     def review_skill_ids(self) -> set[str]:
-        return {sid for sid, record in self.mastery.items() if record.status == "needs_review"}
+        return {
+            sid
+            for sid, record in self.mastery.items()
+            if record.status == "needs_review"
+        }
 
     @property
     def failed_skill_ids(self) -> set[str]:
-        return {sid for sid, record in self.mastery.items() if record.status == "failed"}
+        return {
+            sid for sid, record in self.mastery.items() if record.status == "failed"
+        }

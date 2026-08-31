@@ -4,7 +4,6 @@ from api.dependencies import (
     get_profile_store,
     resolve_serving_overrides,
 )
-import sys
 from api.schemas.path_schema import PathRequest
 
 router = APIRouter()
@@ -46,19 +45,20 @@ def generate_path(request: PathRequest):
             "path": path_data,
             "state": artifact.state,
         }
-        
+
         store.save_generated_path(request.user_id, response)
 
         return response
 
     except Exception as exc:
         import traceback
+
         traceback.print_exc()
 
         raise HTTPException(
-            status_code=500,
-            detail="Unable to generate the learning path right now."
+            status_code=500, detail="Unable to generate the learning path right now."
         ) from exc
+
 
 @router.get("/generated/{user_id}")
 def get_generated_path(user_id: str):

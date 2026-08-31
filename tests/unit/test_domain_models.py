@@ -33,7 +33,17 @@ class TestDomainModels(unittest.TestCase):
             Resource(resource_id="r1", title="Bad", skill_ids=["python", "python"])
 
     def test_goal_and_skill_have_explicit_prerequisites(self):
-        skill = Skill(skill_id="ml", name="Machine learning", category="ai", prerequisite_skill_ids=["stats"])
-        goal = Goal(goal_id="g1", title="AI engineer", domain="ai", required_skill_ids=[skill.skill_id])
+        skill = Skill(
+            skill_id="ml",
+            name="Machine learning",
+            category="ai",
+            prerequisite_skill_ids=["stats"],
+        )
+        goal = Goal(
+            goal_id="g1",
+            title="AI engineer",
+            domain="ai",
+            required_skill_ids=[skill.skill_id],
+        )
         self.assertEqual(skill.prerequisite_skill_ids, ["stats"])
         self.assertEqual(goal.required_skill_ids, ["ml"])

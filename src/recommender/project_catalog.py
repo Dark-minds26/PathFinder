@@ -138,7 +138,6 @@ PROJECTS = {
         3,
         "Create a collaborative workshop board for brainstorming, user journeys, and idea prioritization.",
     ),
-
     # ---------- DATA / ANALYTICS ----------
     "python_advanced": (
         "Python Data Processing Pipeline",
@@ -182,7 +181,6 @@ PROJECTS = {
         8,
         "Create an interactive Tableau dashboard that communicates important trends and insights from a dataset.",
     ),
-
     # ---------- MACHINE LEARNING / AI ----------
     "machine_learning": (
         "End-to-End ML Predictor",
@@ -232,7 +230,6 @@ PROJECTS = {
         8,
         "Design, compare, and evaluate prompts for different tasks while improving reliability and output quality.",
     ),
-
     # ---------- DATA ENGINEERING ----------
     "data_pipelines": (
         "Automated Data Pipeline",
@@ -270,7 +267,6 @@ PROJECTS = {
         8,
         "Define data ownership, quality rules, policies, and governance processes for a sample organization.",
     ),
-
     # ---------- FRONTEND / BACKEND ----------
     "javascript_basics": (
         "Interactive JavaScript Web App",
@@ -332,7 +328,6 @@ PROJECTS = {
         10,
         "Design the architecture of a scalable application including services, databases, caching, and trade-offs.",
     ),
-
     # ---------- CLOUD / DEVOPS ----------
     "kubernetes_basics": (
         "Kubernetes Deployment Project",
@@ -430,7 +425,6 @@ PROJECTS = {
         8,
         "Configure and troubleshoot network services, devices, addressing, and connectivity.",
     ),
-
     # ---------- SECURITY ----------
     "network_security": (
         "Secure Network Design",
@@ -468,7 +462,6 @@ PROJECTS = {
         10,
         "Analyze security logs and create detections and dashboards using SIEM concepts.",
     ),
-
     # ---------- DATABASE ----------
     "database_administration": (
         "Database Administration Lab",
@@ -482,7 +475,6 @@ PROJECTS = {
         8,
         "Analyze slow queries and improve database performance using indexing and query optimization.",
     ),
-
     # ---------- MOBILE ----------
     "kotlin_basics": (
         "Kotlin Fundamentals App",
@@ -514,7 +506,6 @@ PROJECTS = {
         6,
         "Design mobile screens using common navigation, layout, and interaction patterns.",
     ),
-
     # ---------- QA ----------
     "test_automation": (
         "Automated Testing Framework",
@@ -522,7 +513,6 @@ PROJECTS = {
         10,
         "Build an automated testing suite for a sample application with repeatable test execution and reporting.",
     ),
-
     # ---------- PRODUCT / DESIGN ----------
     "product_roadmapping": (
         "Product Roadmap Case Study",
@@ -560,7 +550,6 @@ PROJECTS = {
         6,
         "Design a complete interface in Sketch using artboards, reusable components, and layout principles.",
     ),
-
     # ---------- GAME / EMBEDDED / ROBOTICS / XR ----------
     "game_engine_basics": (
         "Unity Mini Game",
@@ -616,7 +605,6 @@ PROJECTS = {
         12,
         "Build a basic immersive experience using interaction, scenes, and spatial user interface concepts.",
     ),
-
     # ---------- BLOCKCHAIN ----------
     "solidity_basics": (
         "Solidity Smart Contract Project",
@@ -636,7 +624,6 @@ PROJECTS = {
         10,
         "Design a blockchain-based system and evaluate consensus, storage, security, and scalability trade-offs.",
     ),
-
     # ---------- WRITING / MARKETING / CRM / ERP ----------
     "api_documentation": (
         "API Documentation Project",

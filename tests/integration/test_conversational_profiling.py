@@ -1,6 +1,7 @@
 """Integration tests against real trained artifacts (run `python
 main.py` first) - exercises RAG retrieval and the full profiling
 conversation with LocalStubLLMClient, no network or API key needed."""
+
 import shutil
 import tempfile
 import unittest
@@ -15,7 +16,9 @@ from src.recommender.llm.rag_engine import RAGEngine
 ARTIFACTS_PRESENT = Path("artifacts/model/model.pkl").exists()
 
 
-@unittest.skipUnless(ARTIFACTS_PRESENT, "run `python main.py` to produce artifacts first")
+@unittest.skipUnless(
+    ARTIFACTS_PRESENT, "run `python main.py` to produce artifacts first"
+)
 class TestRAGRetrieval(unittest.TestCase):
     def setUp(self):
         cfg = ConfigurationManager()
@@ -40,7 +43,9 @@ class TestRAGRetrieval(unittest.TestCase):
         self.assertEqual(results[0]["goal_id"], "goal_data_scientist")
 
 
-@unittest.skipUnless(ARTIFACTS_PRESENT, "run `python main.py` to produce artifacts first")
+@unittest.skipUnless(
+    ARTIFACTS_PRESENT, "run `python main.py` to produce artifacts first"
+)
 class TestConversationalProfiling(unittest.TestCase):
     def setUp(self):
         cfg = ConfigurationManager()
@@ -65,7 +70,9 @@ class TestConversationalProfiling(unittest.TestCase):
         )
         self.assertIsInstance(reply1, str)
         self.assertGreater(c1, 0.0)
-        self.assertEqual(self.store.get("new_user_1").get("goal_id"), "goal_data_scientist")
+        self.assertEqual(
+            self.store.get("new_user_1").get("goal_id"), "goal_data_scientist"
+        )
 
         reply2, c2 = manager.handle_turn(
             "I already know python basics and sql basics. I'm intermediate level."
@@ -103,14 +110,18 @@ class TestConversationalProfiling(unittest.TestCase):
     def test_natural_language_time_style_and_goal(self):
         manager = ConversationManager("natural_user", self.rag, self.llm, self.store)
         manager.handle_turn("I want to become an AI engineer")
-        manager.handle_turn("I learn by building practical projects and can study 7 hours a day")
+        manager.handle_turn(
+            "I learn by building practical projects and can study 7 hours a day"
+        )
         profile = self.store.get("natural_user")
         self.assertEqual(profile["goal_id"], "goal_ai_engineer")
         self.assertEqual(profile["learning_style"], "practice")
         self.assertEqual(profile["weekly_hours"], 49.0)
 
     def test_negative_learning_statement_is_not_mastery(self):
-        manager = ConversationManager("negative_semantics_user", self.rag, self.llm, self.store)
+        manager = ConversationManager(
+            "negative_semantics_user", self.rag, self.llm, self.store
+        )
         manager.handle_turn("I am new to Docker and need to learn it")
         profile = self.store.get("negative_semantics_user")
         self.assertNotIn("docker_basics", profile["skill_ids"])

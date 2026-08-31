@@ -60,7 +60,11 @@ class DataValidation:
                     n_dupes = int(df[pk].duplicated().sum())
                     n_nulls = int(df[pk].isna().sum())
                     table_report["checks"].append(
-                        {"primary_key": pk, "duplicate_rows": n_dupes, "null_rows": n_nulls}
+                        {
+                            "primary_key": pk,
+                            "duplicate_rows": n_dupes,
+                            "null_rows": n_nulls,
+                        }
                     )
                     if n_dupes or n_nulls:
                         all_passed = False
@@ -73,7 +77,11 @@ class DataValidation:
                     valid_ids = set(parent_df[parent_col])
                     orphaned = int((~df[fk_col].isin(valid_ids)).sum())
                     table_report["checks"].append(
-                        {"foreign_key": fk_col, "references": parent_ref, "orphaned_rows": orphaned}
+                        {
+                            "foreign_key": fk_col,
+                            "references": parent_ref,
+                            "orphaned_rows": orphaned,
+                        }
                     )
                     if orphaned:
                         all_passed = False

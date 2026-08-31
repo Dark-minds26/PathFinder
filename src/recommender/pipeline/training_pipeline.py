@@ -44,7 +44,9 @@ class TrainingPipeline:
         ).initiate_model_training()
 
         evaluator_artifact = ModelEvaluator(
-            trainer_artifact, transformation_artifact, self.config_manager.get_model_evaluator_config()
+            trainer_artifact,
+            transformation_artifact,
+            self.config_manager.get_model_evaluator_config(),
         ).initiate_model_evaluation()
 
         if not evaluator_artifact.is_model_accepted:

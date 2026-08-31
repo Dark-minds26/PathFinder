@@ -1,5 +1,9 @@
 from fastapi import APIRouter, HTTPException
-from api.dependencies import get_conversation_manager, get_path_generator, resolve_serving_overrides
+from api.dependencies import (
+    get_conversation_manager,
+    get_path_generator,
+    resolve_serving_overrides,
+)
 from api.schemas.profile_schema import ChatRequest, ChatResponse
 import traceback
 
@@ -50,10 +54,7 @@ def chat(request: ChatRequest) -> ChatResponse:
                 **overrides,
             )
 
-            path = [
-                _step_to_dict(step)
-                for step in artifact.steps
-            ]
+            path = [_step_to_dict(step) for step in artifact.steps]
 
             path_state = artifact.state
 
@@ -63,49 +64,39 @@ def chat(request: ChatRequest) -> ChatResponse:
         return ChatResponse(
             reply=reply,
             profile_completeness=completeness,
-
             goal_id=profile.get("goal_id"),
             experience_level=profile.get("experience_level"),
             learning_style=profile.get("learning_style"),
             weekly_hours=profile.get("weekly_hours"),
             interests=profile.get("interests", []),
-
             roadmap_preferences=profile.get(
                 "roadmap_preferences",
                 {},
             ),
-
             roadmap_updated=meta.get(
                 "recommendation_changed",
                 False,
             ),
-
             path=path,
             path_state=path_state,
             path_message=path_message,
-
             progress_pct=0.0,
-
             mastered_skills=profile.get(
                 "skill_ids",
                 [],
             ),
-
             unmastered_skills=profile.get(
                 "unmastered_skill_ids",
                 [],
             ),
-
             mastery=profile.get(
                 "mastery",
                 {},
             ),
-
             learning_history=profile.get(
                 "learning_history",
                 [],
             ),
-
             goal_spec=profile.get("goal_spec"),
         )
 
@@ -121,6 +112,7 @@ def chat(request: ChatRequest) -> ChatResponse:
 @router.get("/{user_id}")
 def get_profile(user_id: str) -> dict:
     from api.dependencies import get_profile_store
+
     store = get_profile_store()
     return {
         "user_id": user_id,

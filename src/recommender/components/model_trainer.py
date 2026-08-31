@@ -28,7 +28,9 @@ class RankerModel:
     everything downstream (evaluator, explainer, path generator) doesn't
     need to know which one trained it."""
 
-    def __init__(self, backend: str, estimator, feature_columns: list[str] | None = None) -> None:
+    def __init__(
+        self, backend: str, estimator, feature_columns: list[str] | None = None
+    ) -> None:
         self.backend = backend
         self.estimator = estimator
         self.feature_columns = list(feature_columns or [])
@@ -40,7 +42,6 @@ class RankerModel:
             else:
                 X = X.loc[:, self.feature_columns]
         return np.asarray(self.estimator.predict(X))
-
 
     def feature_weights(self) -> dict[str, float]:
         """Return normalized global feature importance for XAI reporting.
@@ -63,7 +64,10 @@ class RankerModel:
         total = float(values.sum())
         if total <= 0:
             return {name: 0.0 for name in self.feature_columns}
-        return {name: round(float(value / total), 6) for name, value in zip(self.feature_columns, values)}
+        return {
+            name: round(float(value / total), 6)
+            for name, value in zip(self.feature_columns, values)
+        }
 
 
 class ModelTrainer:
@@ -84,7 +88,9 @@ class ModelTrainer:
 
     def initiate_model_training(self) -> ModelTrainerArtifact:
         try:
-            logging.info("Training recommender model on user-level training holdout only")
+            logging.info(
+                "Training recommender model on user-level training holdout only"
+            )
             df = pd.read_csv(self.data_transformation_artifact.transformed_data_path)
             feature_cols = self.data_transformation_artifact.feature_columns
             df = df.sort_values("user_id").reset_index(drop=True)
@@ -104,7 +110,9 @@ class ModelTrainer:
                 estimator.fit(X, y, group=group)
                 backend = "lightgbm-lambdarank"
             else:
-                logging.info("lightgbm not installed - falling back to GradientBoostingRegressor")
+                logging.info(
+                    "lightgbm not installed - falling back to GradientBoostingRegressor"
+                )
                 estimator = GradientBoostingRegressor(
                     n_estimators=self.config.model_params.get("n_estimators", 200),
                     learning_rate=self.config.model_params.get("learning_rate", 0.05),
@@ -114,17 +122,23 @@ class ModelTrainer:
                 estimator.fit(X, y)
                 backend = "sklearn-gbr-fallback"
 
-            model = RankerModel(backend=backend, estimator=estimator, feature_columns=feature_cols)
+            model = RankerModel(
+                backend=backend, estimator=estimator, feature_columns=feature_cols
+            )
             preds = model.predict(X)
             train_score = float(np.corrcoef(preds, y)[0, 1]) if len(set(y)) > 1 else 0.0
             feature_weights = model.feature_weights()
             logging.info("Model XAI feature weights: %s", feature_weights)
 
-            Path(self.config.candidate_model_path).parent.mkdir(parents=True, exist_ok=True)
+            Path(self.config.candidate_model_path).parent.mkdir(
+                parents=True, exist_ok=True
+            )
             with open(self.config.candidate_model_path, "wb") as f:
                 pickle.dump(model, f)
 
-            logging.info(f"Model trained ({backend}), train correlation={train_score:.3f}")
+            logging.info(
+                f"Model trained ({backend}), train correlation={train_score:.3f}"
+            )
             return ModelTrainerArtifact(
                 trained_model_path=self.config.candidate_model_path,
                 train_score=train_score,

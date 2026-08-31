@@ -1,5 +1,9 @@
 from fastapi import APIRouter, HTTPException
-from api.dependencies import get_profile_store, get_path_generator, resolve_serving_overrides
+from api.dependencies import (
+    get_profile_store,
+    get_path_generator,
+    resolve_serving_overrides,
+)
 from src.recommender.llm.llm_client import get_llm_client
 from api.schemas.assessment_schema import AssessmentRequest
 from api.schemas.path_schema import PathResponse, PathStep
@@ -17,10 +21,16 @@ STATUS_TO_EVENT = {
 
 def _entity_step_to_schema(step) -> PathStep:
     return PathStep(
-        skill_id=step.skill_id, course_id=step.course_id, course_title=step.course_title,
-        sequence_order=step.sequence_order, predicted_score=step.predicted_score,
-        duration_hours=step.duration_hours, format=step.format, status=step.status,
-        why=step.why, competency=step.competency,
+        skill_id=step.skill_id,
+        course_id=step.course_id,
+        course_title=step.course_title,
+        sequence_order=step.sequence_order,
+        predicted_score=step.predicted_score,
+        duration_hours=step.duration_hours,
+        format=step.format,
+        status=step.status,
+        why=step.why,
+        competency=step.competency,
     )
 
 
@@ -31,7 +41,8 @@ def get_assessment(skill_id: str):
         dynamic_test = llm.generate_assessment(skill_id)
         cache_key = f"test_{skill_id}"
         _temp_assessment_cache[cache_key] = {
-            q["id"]: q.get("correct_index", 0) for q in dynamic_test.get("questions", [])
+            q["id"]: q.get("correct_index", 0)
+            for q in dynamic_test.get("questions", [])
         }
         safe_questions = [
             {"id": q["id"], "question": q["question"], "options": q["options"]}
@@ -40,7 +51,9 @@ def get_assessment(skill_id: str):
         return {"skill_id": skill_id, "questions": safe_questions}
     except Exception as exc:
         print(f"LLM Assessment Error: {exc}")
-        raise HTTPException(status_code=500, detail="Could not dynamically generate assessment.") from exc
+        raise HTTPException(
+            status_code=500, detail="Could not dynamically generate assessment."
+        ) from exc
 
 
 @router.post("/submit", response_model=PathResponse)
@@ -52,7 +65,8 @@ def submit_assessment(request: AssessmentRequest) -> PathResponse:
         if correct_answers:
             total = len(correct_answers)
             correct = sum(
-                1 for qid, ans in request.answers.items()
+                1
+                for qid, ans in request.answers.items()
                 if str(correct_answers.get(qid)) == str(ans)
             )
         else:
@@ -70,27 +84,40 @@ def submit_assessment(request: AssessmentRequest) -> PathResponse:
 
     store = get_profile_store()
     before = store.get(request.user_id)
-    previous_state = ((before.get("mastery_state", {}).get(request.skill_id) or {}).get("status"))
+    previous_state = (before.get("mastery_state", {}).get(request.skill_id) or {}).get(
+        "status"
+    )
 
-    profile = store.set_mastery(request.user_id, request.skill_id, mastery_value, "assessment")
+    profile = store.set_mastery(
+        request.user_id, request.skill_id, mastery_value, "assessment"
+    )
     new_status = profile["mastery_state"][request.skill_id]["status"]
 
-    store.record_history(request.user_id, {
-        "type": STATUS_TO_EVENT[new_status],
-        "skill_id": request.skill_id,
-        "score": score_pct,
-        "previous_status": previous_state,
-        "new_status": new_status,
-    })
+    store.record_history(
+        request.user_id,
+        {
+            "type": STATUS_TO_EVENT[new_status],
+            "skill_id": request.skill_id,
+            "score": score_pct,
+            "previous_status": previous_state,
+            "new_status": new_status,
+        },
+    )
 
-    msg = "Checkpoint validated. Skill mastered!" if new_status == "validated" else "Checkpoint missed. Skill added back for review."
+    msg = (
+        "Checkpoint validated. Skill mastered!"
+        if new_status == "validated"
+        else "Checkpoint missed. Skill added back for review."
+    )
 
     overrides = resolve_serving_overrides(request.user_id)
     path_steps: list[PathStep] = []
     if overrides.get("goal_id"):
         review_skills = {request.skill_id} if new_status != "validated" else None
         generator = get_path_generator()
-        artifact = generator.generate_path(request.user_id, review_skills=review_skills, **overrides)
+        artifact = generator.generate_path(
+            request.user_id, review_skills=review_skills, **overrides
+        )
         path_steps = [_entity_step_to_schema(s) for s in artifact.steps]
 
     return PathResponse(

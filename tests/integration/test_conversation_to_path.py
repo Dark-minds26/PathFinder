@@ -5,7 +5,7 @@ gets a real, correctly-ordered roadmap out of Phase 2's recommender.
 
 Run `python main.py` first to produce artifacts/.
 """
-import shutil
+
 import unittest
 from pathlib import Path
 
@@ -21,7 +21,9 @@ from src.recommender.utils.main_utils import load_object
 ARTIFACTS_PRESENT = Path("artifacts/model/model.pkl").exists()
 
 
-@unittest.skipUnless(ARTIFACTS_PRESENT, "run `python main.py` to produce artifacts first")
+@unittest.skipUnless(
+    ARTIFACTS_PRESENT, "run `python main.py` to produce artifacts first"
+)
 class TestConversationToPath(unittest.TestCase):
     def setUp(self):
         self.cfg = ConfigurationManager()
@@ -47,7 +49,9 @@ class TestConversationToPath(unittest.TestCase):
 
     def test_new_user_chat_produces_a_usable_profile_and_real_path(self):
         user_id = "integration_test_user"
-        manager = ConversationManager(user_id, rag=self.rag, llm=self.llm, store=self.store)
+        manager = ConversationManager(
+            user_id, rag=self.rag, llm=self.llm, store=self.store
+        )
 
         _, c1 = manager.handle_turn("I know some Python, I'm a beginner")
         _, c2 = manager.handle_turn("I want to become a backend engineer")
@@ -67,7 +71,8 @@ class TestConversationToPath(unittest.TestCase):
         self.assertGreater(len(artifact.steps), 0, "a real path should be generated")
         skill_ids = [s.skill_id for s in artifact.steps]
         self.assertNotIn(
-            "python_basics", skill_ids,
+            "python_basics",
+            skill_ids,
             "python_basics was already claimed as known - shouldn't be re-recommended",
         )
 
@@ -78,10 +83,15 @@ class TestConversationToPath(unittest.TestCase):
 
     def test_explain_produces_real_attributions_for_a_generated_step(self):
         user_id = "integration_test_user_2"
-        manager = ConversationManager(user_id, rag=self.rag, llm=self.llm, store=self.store)
+        manager = ConversationManager(
+            user_id, rag=self.rag, llm=self.llm, store=self.store
+        )
         manager.handle_turn("I want to become a frontend engineer")
         profile = self.store.get(user_id)
-        overrides = {"goal_id": profile["goal_id"], "possessed_skills": set(profile["skill_ids"])}
+        overrides = {
+            "goal_id": profile["goal_id"],
+            "possessed_skills": set(profile["skill_ids"]),
+        }
 
         artifact = self.generator.generate_path(user_id, **overrides)
         self.assertGreater(len(artifact.steps), 0)
@@ -89,11 +99,17 @@ class TestConversationToPath(unittest.TestCase):
 
         explainer = load_object(self.cfg.get_explainer_config().explainer_object_path)
         attributions = compute_attributions(
-            self.generator.ctx, self.generator.model, explainer,
-            user_id, top_step.course_id, **overrides,
+            self.generator.ctx,
+            self.generator.model,
+            explainer,
+            user_id,
+            top_step.course_id,
+            **overrides,
         )
         self.assertEqual(len(attributions), 5)
-        explanation = self.llm.explain(top_step.course_title, "Frontend engineer", attributions)
+        explanation = self.llm.explain(
+            top_step.course_title, "Frontend engineer", attributions
+        )
         self.assertIn(top_step.course_title, explanation)
 
 

@@ -1,9 +1,7 @@
-import json
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 from src.recommender.llm.profile_store import ProfileStore
 from src.recommender.assessment_engine import score_answers
@@ -21,7 +19,9 @@ class TestAssessmentMasteryContract(unittest.TestCase):
         uid = "u"
         self.store.update(uid, goal_id="goal_ai_engineer")
         self.store.set_mastery(uid, "docker_basics", 1.0, "assessment")
-        self.assertEqual(self.store.get(uid)["mastery_state"]["docker_basics"]["status"], "validated")
+        self.assertEqual(
+            self.store.get(uid)["mastery_state"]["docker_basics"]["status"], "validated"
+        )
         self.assertIn("docker_basics", self.store.get(uid)["skill_ids"])
 
         self.store.set_mastery(uid, "docker_basics", 0.75, "assessment")
@@ -44,7 +44,10 @@ class TestAssessmentMasteryContract(unittest.TestCase):
     def test_checkpoint_answer_scoring_is_deterministic(self):
         answers = {"docker_basics_1": 1, "docker_basics_2": 1, "docker_basics_3": 1}
         self.assertEqual(score_answers("docker_basics", answers), 100.0)
-        self.assertEqual(score_answers("docker_basics", {**answers, "docker_basics_1": 0}), 66.7)
+        self.assertEqual(
+            score_answers("docker_basics", {**answers, "docker_basics_1": 0}), 66.7
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

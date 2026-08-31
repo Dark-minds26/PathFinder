@@ -9,8 +9,13 @@ from src.recommender.logger import logging
 from src.recommender.utils.synthetic_data import generate_seed_data
 
 EXPECTED_TABLES = [
-    "users", "courses", "skills", "skill_prerequisites",
-    "career_goals", "bridge_career_goal_skill", "bridge_course_skill",
+    "users",
+    "courses",
+    "skills",
+    "skill_prerequisites",
+    "career_goals",
+    "bridge_career_goal_skill",
+    "bridge_course_skill",
     "learning_events",
 ]
 

@@ -8,6 +8,7 @@ data/seed and re-running the whole training pipeline.
 
 Run: python scripts/generate_synthetic_data.py [--users 300] [--seed 42]
 """
+
 import argparse
 import os
 import sys

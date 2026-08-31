@@ -4,9 +4,15 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pandas as pd
 
-from src.recommender.components.data_transformation import _temporal_rows, split_user_ids
+from src.recommender.components.data_transformation import (
+    _temporal_rows,
+    split_user_ids,
+)
 from src.recommender.components.path_generator import PathGenerator
-from src.recommender.entity.artifact_entity import DataValidationArtifact, ModelEvaluatorArtifact
+from src.recommender.entity.artifact_entity import (
+    DataValidationArtifact,
+    ModelEvaluatorArtifact,
+)
 from src.recommender.pipeline.training_pipeline import TrainingPipeline
 from src.recommender.utils.explain_utils import compute_attributions
 
@@ -42,18 +48,49 @@ class TestLeakageFixes(unittest.TestCase):
 
     def test_future_mastery_does_not_change_earlier_features(self):
         ctx = FakeContext()
-        first = pd.DataFrame([
-            {"event_id": "e1", "user_id": "u1", "course_id": "c1", "skill_id": "s1", "event_type": "completed", "score": 50, "occurred_at": "2026-01-01"},
-        ])
-        with_future = pd.concat([
-            first,
-            pd.DataFrame([{
-                "event_id": "e2", "user_id": "u1", "course_id": "c2", "skill_id": "s1", "event_type": "completed", "score": 100, "occurred_at": "2026-02-01",
-            }]),
-        ], ignore_index=True)
+        first = pd.DataFrame(
+            [
+                {
+                    "event_id": "e1",
+                    "user_id": "u1",
+                    "course_id": "c1",
+                    "skill_id": "s1",
+                    "event_type": "completed",
+                    "score": 50,
+                    "occurred_at": "2026-01-01",
+                },
+            ]
+        )
+        with_future = pd.concat(
+            [
+                first,
+                pd.DataFrame(
+                    [
+                        {
+                            "event_id": "e2",
+                            "user_id": "u1",
+                            "course_id": "c2",
+                            "skill_id": "s1",
+                            "event_type": "completed",
+                            "score": 100,
+                            "occurred_at": "2026-02-01",
+                        }
+                    ]
+                ),
+            ],
+            ignore_index=True,
+        )
 
-        before, _ = _temporal_rows(first, {"u1"}, ctx, negative_samples_per_user=0, course_ids=["c1", "c2"])
-        after, _ = _temporal_rows(with_future, {"u1"}, ctx, negative_samples_per_user=0, course_ids=["c1", "c2"])
+        before, _ = _temporal_rows(
+            first, {"u1"}, ctx, negative_samples_per_user=0, course_ids=["c1", "c2"]
+        )
+        after, _ = _temporal_rows(
+            with_future,
+            {"u1"},
+            ctx,
+            negative_samples_per_user=0,
+            course_ids=["c1", "c2"],
+        )
         self.assertEqual(before[0]["skill_gap_match"], after[0]["skill_gap_match"])
 
 
@@ -66,11 +103,21 @@ class TestPipelineGates(unittest.TestCase):
         pipeline.config_manager.get_data_ingestion_config.return_value = Mock()
         pipeline.config_manager.get_data_validation_config.return_value = Mock()
 
-        with patch("src.recommender.pipeline.training_pipeline.DataIngestion") as ingestion_cls, \
-             patch("src.recommender.pipeline.training_pipeline.DataValidation") as validation_cls, \
-             patch("src.recommender.pipeline.training_pipeline.SkillGraphBuilder") as graph_cls:
+        with (
+            patch(
+                "src.recommender.pipeline.training_pipeline.DataIngestion"
+            ) as ingestion_cls,
+            patch(
+                "src.recommender.pipeline.training_pipeline.DataValidation"
+            ) as validation_cls,
+            patch(
+                "src.recommender.pipeline.training_pipeline.SkillGraphBuilder"
+            ) as graph_cls,
+        ):
             ingestion_cls.return_value.initiate_data_ingestion.return_value = ingestion
-            validation_cls.return_value.initiate_data_validation.return_value = validation
+            validation_cls.return_value.initiate_data_validation.return_value = (
+                validation
+            )
             with self.assertRaises(ValueError):
                 pipeline.run()
             graph_cls.assert_not_called()
@@ -86,18 +133,40 @@ class TestPipelineGates(unittest.TestCase):
         pipeline.config_manager.get_model_evaluator_config.return_value = Mock()
         pipeline.config_manager.get_explainer_config.return_value = Mock()
 
-        with patch("src.recommender.pipeline.training_pipeline.DataIngestion") as ingestion_cls, \
-             patch("src.recommender.pipeline.training_pipeline.DataValidation") as validation_cls, \
-             patch("src.recommender.pipeline.training_pipeline.SkillGraphBuilder") as graph_cls, \
-             patch("src.recommender.pipeline.training_pipeline.DataTransformation") as transform_cls, \
-             patch("src.recommender.pipeline.training_pipeline.ModelTrainer") as trainer_cls, \
-             patch("src.recommender.pipeline.training_pipeline.ModelEvaluator") as evaluator_cls, \
-             patch("src.recommender.pipeline.training_pipeline.Explainer") as explainer_cls:
+        with (
+            patch(
+                "src.recommender.pipeline.training_pipeline.DataIngestion"
+            ) as ingestion_cls,
+            patch(
+                "src.recommender.pipeline.training_pipeline.DataValidation"
+            ) as validation_cls,
+            patch(
+                "src.recommender.pipeline.training_pipeline.SkillGraphBuilder"
+            ) ,
+            patch(
+                "src.recommender.pipeline.training_pipeline.DataTransformation"
+            ) as transform_cls,
+            patch(
+                "src.recommender.pipeline.training_pipeline.ModelTrainer"
+            ) as trainer_cls,
+            patch(
+                "src.recommender.pipeline.training_pipeline.ModelEvaluator"
+            ) as evaluator_cls,
+            patch(
+                "src.recommender.pipeline.training_pipeline.Explainer"
+            ) as explainer_cls,
+        ):
             ingestion_cls.return_value.initiate_data_ingestion.return_value = Mock()
-            validation_cls.return_value.initiate_data_validation.return_value = DataValidationArtifact(True, "report.yaml")
-            transform_cls.return_value.initiate_data_transformation.return_value = Mock()
+            validation_cls.return_value.initiate_data_validation.return_value = (
+                DataValidationArtifact(True, "report.yaml")
+            )
+            transform_cls.return_value.initiate_data_transformation.return_value = (
+                Mock()
+            )
             trainer_cls.return_value.initiate_model_training.return_value = Mock()
-            evaluator_cls.return_value.initiate_model_evaluation.return_value = ModelEvaluatorArtifact(False, "candidate.pkl", {"ndcg_at_k": 0.2})
+            evaluator_cls.return_value.initiate_model_evaluation.return_value = (
+                ModelEvaluatorArtifact(False, "candidate.pkl", {"ndcg_at_k": 0.2})
+            )
             with self.assertRaises(ValueError):
                 pipeline.run()
             explainer_cls.assert_not_called()
@@ -107,6 +176,7 @@ class TestConfigBehavior(unittest.TestCase):
     def test_top_k_attributions_is_enforced(self):
         class Explainer:
             top_k_features = 2
+
             def shap_values(self, X):
                 return np.array([[0.1, -0.9, 0.3, 0.2, 0.05, -0.4, 0.15, 0.25]])
 

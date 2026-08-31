@@ -23,6 +23,7 @@ from src.recommender.exception import RecommenderException
 from src.recommender.logger import logging
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 
@@ -34,7 +35,11 @@ _PROJECT_LEVEL_GUIDANCE = {
 
 
 def _normalize_level(experience_level: str | None) -> str:
-    return experience_level if experience_level in _PROJECT_LEVEL_GUIDANCE else "intermediate"
+    return (
+        experience_level
+        if experience_level in _PROJECT_LEVEL_GUIDANCE
+        else "intermediate"
+    )
 
 
 def _project_prompt(skill_id: str, level: str) -> str:
@@ -68,7 +73,9 @@ class LLMClient(ABC):
         course_title was recommended, grounded in attributions."""
 
     @abstractmethod
-    def generate_project(self, skill_id: str, experience_level: str | None = None) -> dict:
+    def generate_project(
+        self, skill_id: str, experience_level: str | None = None
+    ) -> dict:
         """Return {"title", "estimated_hours", "description", "skills"}
         for a fresh, unique portfolio project brief for this skill,
         scaled to experience_level (beginner/intermediate/advanced)."""
@@ -349,14 +356,18 @@ class GroqClient(LLMClient):
         except Exception as e:
             raise RecommenderException(e, sys) from e
 
-    def generate_project(self, skill_id: str, experience_level: str | None = None) -> dict:
+    def generate_project(
+        self, skill_id: str, experience_level: str | None = None
+    ) -> dict:
         import json
 
         level = _normalize_level(experience_level)
         try:
             resp = self.client.chat.completions.create(
                 model=self.model,
-                messages=[{"role": "user", "content": _project_prompt(skill_id, level)}],
+                messages=[
+                    {"role": "user", "content": _project_prompt(skill_id, level)}
+                ],
                 temperature=0.7,
                 response_format={"type": "json_object"},
             )
@@ -526,14 +537,18 @@ class OpenAIClient(LLMClient):
         except Exception as e:
             raise RecommenderException(e, sys) from e
 
-    def generate_project(self, skill_id: str, experience_level: str | None = None) -> dict:
+    def generate_project(
+        self, skill_id: str, experience_level: str | None = None
+    ) -> dict:
         import json
 
         level = _normalize_level(experience_level)
         try:
             resp = self.client.chat.completions.create(
                 model=self.model,
-                messages=[{"role": "user", "content": _project_prompt(skill_id, level)}],
+                messages=[
+                    {"role": "user", "content": _project_prompt(skill_id, level)}
+                ],
                 temperature=0.7,
                 response_format={"type": "json_object"},
             )
@@ -837,13 +852,17 @@ class LocalStubLLMClient(LLMClient):
 
         return template_explanation(course_title, attributions)
 
-    def generate_project(self, skill_id: str, experience_level: str | None = None) -> dict:
+    def generate_project(
+        self, skill_id: str, experience_level: str | None = None
+    ) -> dict:
         from src.recommender.project_catalog import project_for
 
         project = dict(project_for(skill_id))
         level = _normalize_level(experience_level)
         multiplier = {"beginner": 0.6, "intermediate": 1.0, "advanced": 1.6}[level]
-        project["estimated_hours"] = max(1, round(project["estimated_hours"] * multiplier))
+        project["estimated_hours"] = max(
+            1, round(project["estimated_hours"] * multiplier)
+        )
         return project
 
     def generate_dynamic_path(
@@ -960,14 +979,18 @@ class MistralClient(LLMClient):
             logging.error(f"Mistral explain error: {e}")
             raise RecommenderException(e, sys) from e
 
-    def generate_project(self, skill_id: str, experience_level: str | None = None) -> dict:
+    def generate_project(
+        self, skill_id: str, experience_level: str | None = None
+    ) -> dict:
         try:
             import json
 
             level = _normalize_level(experience_level)
             response = self.client.chat.complete(
                 model=self.model,
-                messages=[{"role": "user", "content": _project_prompt(skill_id, level)}],
+                messages=[
+                    {"role": "user", "content": _project_prompt(skill_id, level)}
+                ],
                 temperature=0.7,
                 response_format={"type": "json_object"},
             )

@@ -48,23 +48,14 @@ class PathGenerator:
         self._model = load_object(self.config.model_path)
         preprocessor = load_object(self.config.preprocessor_path)
 
-        self._ctx = FeatureContext.from_preprocessor(
-            preprocessor,
-            graph
-        )
+        self._ctx = FeatureContext.from_preprocessor(preprocessor, graph)
 
         bridge = pd.read_csv(self.config.bridge_course_skill_path)
 
         course_skill_map = {}
 
-        for _, row in (
-            bridge.sort_values("skill_weight", ascending=False)
-            .iterrows()
-        ):
-            course_skill_map.setdefault(
-                row["skill_id"],
-                []
-            ).append(row["course_id"])
+        for _, row in bridge.sort_values("skill_weight", ascending=False).iterrows():
+            course_skill_map.setdefault(row["skill_id"], []).append(row["course_id"])
 
         self._course_skill_map = course_skill_map
 
@@ -73,13 +64,9 @@ class PathGenerator:
         scores = np.asarray(scores, dtype=float)
 
         shifted = scores - np.max(scores)
-        exp_scores = np.exp(
-            np.clip(shifted, -50, 50)
-        )
+        exp_scores = np.exp(np.clip(shifted, -50, 50))
 
-        return exp_scores / (
-            exp_scores.sum() or 1.0
-        )
+        return exp_scores / (exp_scores.sum() or 1.0)
 
     def _order_skills_by_prerequisites(
         self,
@@ -101,9 +88,7 @@ class PathGenerator:
         # Include prerequisites needed for missing skills.
         for skill_id in list(required):
             if skill_id in graph:
-                required.update(
-                    nx.ancestors(graph, skill_id)
-                )
+                required.update(nx.ancestors(graph, skill_id))
 
         # Remove already mastered skills.
         required -= mastered_skills
@@ -123,49 +108,30 @@ class PathGenerator:
             "linux_basics",
             "sql_basics",
             "networking_basics",
-
             "pandas_numpy",
             "statistics",
             "data_wrangling",
-
             "machine_learning",
             "deep_learning",
-
             "docker_basics",
             "mlops_basics",
-
             "rest_apis",
             "model_serving",
-
             "ci_cd_basics",
-
             "cloud_aws_basics",
             "terraform_basics",
-
             "kubernetes_basics",
-
             "monitoring_observability",
             "prometheus_grafana",
         ]
 
-        priority = {
-            skill_id: index
-            for index, skill_id in enumerate(preferred_order)
-        }
+        priority = {skill_id: index for index, skill_id in enumerate(preferred_order)}
 
         def sort_key(skill_id):
-            return (
-                priority.get(skill_id, 10_000),
-                skill_id
-            )
+            return (priority.get(skill_id, 10_000), skill_id)
 
         try:
-            ordered = list(
-                nx.lexicographical_topological_sort(
-                    subgraph,
-                    key=sort_key
-                )
-            )
+            ordered = list(nx.lexicographical_topological_sort(subgraph, key=sort_key))
         except Exception:
             logging.warning(
                 "Could not topologically order roadmap skills. "
@@ -191,13 +157,10 @@ class PathGenerator:
         mastery: dict | None = None,
         review_skills: set | None = None,
     ) -> PathGeneratorArtifact:
-
         try:
             self._ensure_loaded()
 
-            logging.info(
-                f"Generating path for user {user_id}"
-            )
+            logging.info(f"Generating path for user {user_id}")
 
             ctx = self._ctx
 
@@ -228,13 +191,9 @@ class PathGenerator:
             # 2. FORCE PREREQUISITE-FIRST ORDER
             # -------------------------------------------------
 
-            mastered_skills = set(
-                exclude_mastered_skills or set()
-            )
+            mastered_skills = set(exclude_mastered_skills or set())
 
-            mastered_skills |= set(
-                possessed_skills or set()
-            )
+            mastered_skills |= set(possessed_skills or set())
 
             ordered_skills = self._order_skills_by_prerequisites(
                 ordered_skills,
@@ -253,15 +212,10 @@ class PathGenerator:
                     user_id=user_id,
                     steps=[],
                     state="mastered",
-                    message=(
-                        "You already have all required skills "
-                        "for this goal."
-                    ),
+                    message=("You already have all required skills for this goal."),
                 )
 
-            used_courses = set(
-                completed_course_ids or set()
-            )
+            used_courses = set(completed_course_ids or set())
 
             mastery = mastery or {}
 
@@ -272,10 +226,7 @@ class PathGenerator:
             # 3. SELECT BEST COURSE FOR EACH SKILL
             # -------------------------------------------------
 
-            for skill_id in ordered_skills[
-                : self.config.max_path_length
-            ]:
-
+            for skill_id in ordered_skills[: self.config.max_path_length]:
                 candidates = [
                     course_id
                     for course_id in self._course_skill_map.get(
@@ -283,9 +234,7 @@ class PathGenerator:
                         [],
                     )
                     if course_id not in used_courses
-                ][
-                    : self.config.candidate_courses_per_skill
-                ]
+                ][: self.config.candidate_courses_per_skill]
 
                 if not candidates:
                     continue
@@ -319,15 +268,13 @@ class PathGenerator:
                 prefs = roadmap_preferences or {}
 
                 for j, course_id in enumerate(candidates):
-
                     title = ctx.title_by_course.get(
                         course_id,
                         "",
                     ).lower()
 
                     if prefs.get("more_projects") and (
-                        "guided project" in title
-                        or "practice lab" in title
+                        "guided project" in title or "practice lab" in title
                     ):
                         scores[j] += 0.12
 
@@ -343,10 +290,7 @@ class PathGenerator:
                     ):
                         scores[j] += 0.12
 
-                    if prefs.get("less_cloud") and (
-                        "aws" in title
-                        or "cloud" in title
-                    ):
+                    if prefs.get("less_cloud") and ("aws" in title or "cloud" in title):
                         scores[j] -= 0.08
 
                     if prefs.get("slower_pace"):
@@ -356,7 +300,8 @@ class PathGenerator:
                                 ctx.duration_by_course.get(
                                     course_id,
                                     0,
-                                ) - 10,
+                                )
+                                - 10,
                             )
                             * 0.002
                         )
@@ -374,19 +319,13 @@ class PathGenerator:
                             * 0.002
                         )
 
-                    if (
-                        review_skills
-                        and skill_id in review_skills
-                    ):
-
+                    if review_skills and skill_id in review_skills:
                         if "guided project" in title:
                             scores[j] += 0.50
 
                         elif (
                             "practice lab" in title
-                            or ctx.format_by_course.get(
-                                course_id
-                            ) == "interactive"
+                            or ctx.format_by_course.get(course_id) == "interactive"
                         ):
                             scores[j] += 0.10
 
@@ -397,13 +336,9 @@ class PathGenerator:
 
                 best_i = int(np.argmax(scores))
 
-                if (
-                    float(confidences[best_i])
-                    < self.config.min_confidence
-                ):
+                if float(confidences[best_i]) < self.config.min_confidence:
                     logging.info(
-                        "Skipping skill %s because confidence %.3f "
-                        "is below %.3f",
+                        "Skipping skill %s because confidence %.3f is below %.3f",
                         skill_id,
                         confidences[best_i],
                         self.config.min_confidence,
@@ -417,13 +352,8 @@ class PathGenerator:
 
                 status = (
                     "needs_review"
-                    if review_skills
-                    and skill_id in review_skills
-                    else (
-                        "current"
-                        if not steps
-                        else "locked"
-                    )
+                    if review_skills and skill_id in review_skills
+                    else ("current" if not steps else "locked")
                 )
 
                 why = (
@@ -438,10 +368,7 @@ class PathGenerator:
                     )
 
                 if weekly_hours:
-                    why += (
-                        f" within your "
-                        f"{float(weekly_hours):g}h/week study budget"
-                    )
+                    why += f" within your {float(weekly_hours):g}h/week study budget"
 
                 steps.append(
                     PathStep(
@@ -485,7 +412,6 @@ class PathGenerator:
             )
 
             if not candidate_found or not steps:
-
                 message = (
                     "I found the goal and skill gaps, "
                     "but there are no matching courses available yet."
@@ -519,17 +445,11 @@ class PathGenerator:
         profile: dict,
         **kwargs,
     ):
-
         self._ensure_loaded()
 
-        goal_id = (
-            kwargs.get("goal_id")
-            or profile.get("goal_id")
-        )
+        goal_id = kwargs.get("goal_id") or profile.get("goal_id")
 
-        mastered_set = set(
-            profile.get("skill_ids", [])
-        )
+        mastered_set = set(profile.get("skill_ids", []))
 
         try:
             ordered_skills = self.ctx.missing_skills_for_user(
@@ -552,25 +472,19 @@ class PathGenerator:
         mastery = profile.get("mastery", {})
 
         hard_mastered = {
-            skill_id
-            for skill_id, score in mastery.items()
-            if float(score) >= 0.8
+            skill_id for skill_id, score in mastery.items() if float(score) >= 0.8
         }
 
         all_mastered = hard_mastered | mastered_set
 
         ordered_skills = [
-            skill_id
-            for skill_id in ordered_skills
-            if skill_id not in all_mastered
+            skill_id for skill_id in ordered_skills if skill_id not in all_mastered
         ]
 
-        if (
-            profile.get(
-                "roadmap_preferences",
-                {},
-            ).get("skip_docker")
-        ):
+        if profile.get(
+            "roadmap_preferences",
+            {},
+        ).get("skip_docker"):
             ordered_skills = [
                 skill_id
                 for skill_id in ordered_skills
@@ -579,10 +493,7 @@ class PathGenerator:
 
         available_catalog = {}
 
-        for skill_id in ordered_skills[
-            : self.config.max_path_length
-        ]:
-
+        for skill_id in ordered_skills[: self.config.max_path_length]:
             candidates = self._course_skill_map.get(
                 skill_id,
                 [],
@@ -591,9 +502,7 @@ class PathGenerator:
             available_catalog[skill_id] = [
                 {
                     "course_id": course_id,
-                    "title": self.ctx.title_by_course.get(
-                        course_id
-                    ),
+                    "title": self.ctx.title_by_course.get(course_id),
                 }
                 for course_id in candidates
             ]
@@ -602,9 +511,7 @@ class PathGenerator:
 
         path_response = llm.generate_dynamic_path(
             user_profile=profile,
-            ordered_skills=ordered_skills[
-                : self.config.max_path_length
-            ],
+            ordered_skills=ordered_skills[: self.config.max_path_length],
             available_catalog=available_catalog,
         )
 

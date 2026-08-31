@@ -72,7 +72,11 @@ def get_missing_skills_ordered(
     if mastery_states is not None:
         validated = set()
         for skill_id, raw in mastery_states.items():
-            status = raw.get("status") if isinstance(raw, dict) else getattr(raw, "status", None)
+            status = (
+                raw.get("status")
+                if isinstance(raw, dict)
+                else getattr(raw, "status", None)
+            )
             if status == "validated":
                 validated.add(skill_id)
         possessed = validated

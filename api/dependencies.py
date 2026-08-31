@@ -7,6 +7,7 @@ DB session wiring is still pending - it arrives with a real Postgres
 deployment; ProfileStore (JSON-file-backed) stands in for it here,
 same reasoning as cloud_storage/s3_syncer.py.
 """
+
 import pickle
 
 from src.recommender.components.path_generator import PathGenerator
@@ -15,7 +16,9 @@ from src.recommender.llm.conversation_manager import ConversationManager
 from src.recommender.llm.llm_client import LLMClient, get_llm_client
 from src.recommender.llm.profile_store import ProfileStore
 from src.recommender.llm.rag_engine import RAGEngine
-from src.recommender.pipeline.adaptive_rerouting_pipeline import AdaptiveReroutingPipeline
+from src.recommender.pipeline.adaptive_rerouting_pipeline import (
+    AdaptiveReroutingPipeline,
+)
 
 _config_manager = ConfigurationManager()
 _path_generator: PathGenerator | None = None
@@ -90,21 +93,23 @@ def get_conversation_manager(user_id: str) -> ConversationManager:
 
 
 def resolve_serving_overrides(user_id: str) -> dict:
-    profile=get_profile_store().get(user_id)
+    profile = get_profile_store().get(user_id)
     if not profile.get("goal_id"):
         return {}
     if profile.get("mastery"):
-        validated_skills={sid for sid,m in profile.get("mastery",{}).items() if float(m)>=0.80}
+        validated_skills = {
+            sid for sid, m in profile.get("mastery", {}).items() if float(m) >= 0.80
+        }
     else:
-        validated_skills=set(profile.get("skill_ids", []))
+        validated_skills = set(profile.get("skill_ids", []))
     return {
-        "goal_id":profile.get("goal_id"),
-        "possessed_skills":validated_skills,
-        "experience_level":profile.get("experience_level"),
-        "learning_style":profile.get("learning_style"),
-        "weekly_hours":profile.get("weekly_hours"),
-        "interests":profile.get("interests",[]),
-        "roadmap_preferences":profile.get("roadmap_preferences",{}),
-        "completed_course_ids":set(profile.get("completed_course_ids",[])),
-        "mastery":profile.get("mastery",{}),
+        "goal_id": profile.get("goal_id"),
+        "possessed_skills": validated_skills,
+        "experience_level": profile.get("experience_level"),
+        "learning_style": profile.get("learning_style"),
+        "weekly_hours": profile.get("weekly_hours"),
+        "interests": profile.get("interests", []),
+        "roadmap_preferences": profile.get("roadmap_preferences", {}),
+        "completed_course_ids": set(profile.get("completed_course_ids", [])),
+        "mastery": profile.get("mastery", {}),
     }
