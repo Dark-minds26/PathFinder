@@ -596,21 +596,25 @@ git clone <your-repository-url>
 cd PathFinder
 ```
 
-## 2️⃣ Create and activate a virtual environment
+## 2️⃣ (Optional) Create and activate a virtual environment
+
+A virtual environment isn't required, but it's recommended to keep dependencies isolated. **Python 3.11 is the recommended version** for creating the venv.
 
 ### Windows
 
 ```bash
-python -m venv venv
+py -3.11 -m venv venv
 venv\Scripts\activate
 ```
 
 ### macOS / Linux
 
 ```bash
-python3 -m venv venv
+python3.11 -m venv venv
 source venv/bin/activate
 ```
+
+> Skipping this step? You can install dependencies directly into your system/global Python instead — just make sure you're running Python 3.11 for best compatibility.
 
 ## 3️⃣ Install dependencies
 
