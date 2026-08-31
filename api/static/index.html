@@ -323,7 +323,7 @@
       padding: 4px 3px 10px;
       scrollbar-width: thin;
       -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain
+      overscroll-behavior: auto;
     }
 
     .bubble {
@@ -1313,8 +1313,10 @@
       </section>
     </main>
 
-    <footer class="footer"><span>Demo learner <span class="mono" id="user-id-display"></span> · profile stored locally
-        in this browser</span><button id="reset-btn" type="button">Reset this learner</button></footer>
+    <footer class="footer">
+  <span>Pathfinder Engine v1.0 &middot; Session: <span class="mono" id="user-id-display"></span> &middot; Engineered by Team Dark minds</span>
+  <button id="reset-btn" type="button">Reset Session</button>
+</footer>
   </div>
 
   <div id="reset-modal" class="modal-backdrop" style="display: none; align-items: center; justify-content: center;">

@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧭 SkillCompass
+# 🧭 Pathfinder
 
 ### Adaptive AI-powered career guidance and personalized learning paths
 
@@ -19,7 +19,7 @@ Turn a career goal into a **structured, prerequisite-aware learning journey** th
 
 <p align="center">
   <img src="docs/assets/dashboard-overview.png"
-       alt="SkillCompass Dashboard Overview"
+       alt="Pathfinder Dashboard Overview"
        width="900">
 </p>
 
@@ -29,11 +29,11 @@ Turn a career goal into a **structured, prerequisite-aware learning journey** th
 
 ---
 
-# 🚀 What is SkillCompass?
+# 🚀 What is Pathfinder?
 
-**SkillCompass** is an AI-driven adaptive learning-path recommendation system that helps learners move from a career goal to a structured and personalized learning journey.
+**Pathfinder** is an AI-driven adaptive learning-path recommendation system that helps learners move from a career goal to a structured and personalized learning journey.
 
-Unlike a static roadmap generator, SkillCompass maintains a **live learner state** and considers:
+Unlike a static roadmap generator, Pathfinder maintains a **live learner state** and considers:
 
 - 🎯 Career goals
 - 🧠 Existing skills and experience
@@ -50,7 +50,7 @@ Unlike a static roadmap generator, SkillCompass maintains a **live learner state
 
 # ⚡ Core Capabilities
 
-SkillCompass combines:
+Pathfinder combines:
 
 - 💬 LLM-powered conversational profiling
 - 🎯 Career-goal intelligence
@@ -69,7 +69,7 @@ A learner can start with a simple goal:
 
 > **"I want to become an MLOps Engineer."**
 
-SkillCompass transforms it into:
+Pathfinder transforms it into:
 
 ```text
 Career Goal
@@ -137,7 +137,7 @@ The LLM is used for **intent interpretation and natural-language interaction**. 
 
 # 🎯 Career-Goal Intelligence
 
-SkillCompass currently supports **51 career goals** across data, AI, software engineering, cloud, security, design, and other technical domains.
+Pathfinder currently supports **51 career goals** across data, AI, software engineering, cloud, security, design, and other technical domains.
 
 Natural-language goals are resolved against a supported career-goal registry and connected to relevant skills, prerequisites, and learning requirements.
 
@@ -262,7 +262,7 @@ Instead of treating a roadmap as an unrelated list of resources:
 Python → Machine Learning → MLOps
 ```
 
-SkillCompass considers:
+Pathfinder considers:
 
 - Skills the learner already knows
 - Missing skills
@@ -343,7 +343,7 @@ Future Recommendations Adapt
 
 Learning a skill and demonstrating a skill are not the same thing.
 
-SkillCompass connects relevant skills to practical portfolio projects.
+Pathfinder connects relevant skills to practical portfolio projects.
 
 Learner progress can include:
 
@@ -387,7 +387,7 @@ flowchart LR
 
 <p align="center">
   <img src="docs/assets/adaptive-trail.png"
-       alt="SkillCompass Adaptive Learning Path"
+       alt="Pathfinder Adaptive Learning Path"
        width="900">
 </p>
 
@@ -399,13 +399,13 @@ flowchart LR
 
 # 🏆 Career Goal Completion
 
-SkillCompass tracks learner progress across the skills required for a selected career path.
+Pathfinder tracks learner progress across the skills required for a selected career path.
 
 As required skills are validated and progress is recorded, the system can identify completion of the tracked learning journey.
 
 <p align="center">
   <img src="docs/assets/goal-mastered.png"
-       alt="SkillCompass Career Goal Mastered"
+       alt="Pathfinder Career Goal Mastered"
        width="900">
 </p>
 
@@ -436,7 +436,7 @@ As required skills are validated and progress is recorded, the system can identi
 # 📂 Repository Structure
 
 ```text
-SkillCompass/
+Pathfinder/
 │
 ├── api/
 │   ├── main.py
@@ -593,7 +593,7 @@ Same Feature Logic
 
 ```bash
 git clone <your-repository-url>
-cd SkillCompass
+cd PathFinder
 ```
 
 ## 2️⃣ Create and activate a virtual environment
@@ -741,7 +741,7 @@ pytest
 
 ## Current Persistence
 
-SkillCompass currently uses:
+Pathfinder currently uses:
 
 ```text
 artifacts/live_profiles.json
@@ -800,8 +800,8 @@ A learner's career goal may remain the same.
 
 Their **skills, progress, projects, assessment results, and available time** do not.
 
-### SkillCompass adapts the learning journey accordingly.
+### Pathfinder adapts the learning journey accordingly.
 
-⭐ If you found SkillCompass interesting , consider giving the repository a star.
+⭐ If you found Pathfinder interesting , consider giving the repository a star.
 
 </div>
