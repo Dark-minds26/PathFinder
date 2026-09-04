@@ -1,8 +1,6 @@
 <div align="center">
 
 # ⚠️ LIVE LINK UPDATED ⚠️
-
-### This project was submitted for the hackathon with the link below.
 ### Our original live demo link changed due to a Mistral API key issue — please use the updated link for testing/judging.
 
 ## 🔗 [**LAUNCH LIVE DEMO →**](https://superb-motivation-production-de61.up.railway.app/)
