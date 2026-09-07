@@ -1,22 +1,5 @@
 <div align="center">
 
-# ⚠️ LIVE LINK UPDATED ⚠️
-### Our original live demo link changed due to a Mistral API key issue — please use the updated link for testing/judging.
-
-## 🔗 [**LAUNCH LIVE DEMO →**](https://superb-motivation-production-de61.up.railway.app/)
-
-![Status](https://img.shields.io/badge/Status-Live-brightgreen)
-![Updated](https://img.shields.io/badge/Link-Updated-orange)
-
-</div>
-
----
-
-<br>
-
-
-<div align="center">
-
 # 🧭 Pathfinder
 
 ### Adaptive AI-powered career guidance and personalized learning paths
